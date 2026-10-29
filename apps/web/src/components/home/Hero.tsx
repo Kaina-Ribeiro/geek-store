@@ -92,19 +92,27 @@ export function Hero({ featured, strip, total }: { featured: Featured[]; strip: 
                   <b>{String(i + 1).padStart(2, '0')}</b> / {String(featured.length).padStart(2, '0')}
                 </span>
               </div>
-              <Link href={f.href} className="dsp hero-card-name">
-                {f.title}
-              </Link>
-              <div className="hero-tags">
-                <span className="tag">
-                  <i style={{ background: f.platformColor }} />
-                  {f.platform}
-                </span>
-                <span className="tag">
-                  <i style={{ background: f.conditionColor }} />
-                  {f.condition}
-                </span>
-                {f.ageRating && <span className="tag">{f.ageRating}</span>}
+              <div className="hero-card-head">
+                {/* Small cover for screens where the 3D case is hidden. */}
+                <Link href={f.href} className="hero-thumb" key={f.id} tabIndex={-1} aria-hidden="true">
+                  <Image src={f.large.url} alt="" width={f.large.width} height={f.large.height} sizes="64px" />
+                </Link>
+                <div className="hero-card-text">
+                  <Link href={f.href} className="dsp hero-card-name">
+                    {f.title}
+                  </Link>
+                  <div className="hero-tags">
+                    <span className="tag">
+                      <i style={{ background: f.platformColor }} />
+                      {f.platform}
+                    </span>
+                    <span className="tag">
+                      <i style={{ background: f.conditionColor }} />
+                      {f.condition}
+                    </span>
+                    {f.ageRating && <span className="tag">{f.ageRating}</span>}
+                  </div>
+                </div>
               </div>
               <div>
                 <b className="mono hero-price">{f.pix}</b>
