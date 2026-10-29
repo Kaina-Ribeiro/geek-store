@@ -62,12 +62,15 @@
 .co-check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--mute); cursor: pointer; }
 .co-check input { width: 18px; height: 18px; accent-color: #141416; margin-top: 1px; }
 
+/* Sticky summaries sit below the 80px header bar and never grow past the
+   viewport: the item list shrinks first, then the card itself scrolls. */
 .co-sum {
-  position: sticky; top: 24px; display: grid; gap: 14px; padding: 22px; border-radius: 28px;
-  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, .6); overflow: hidden;
+  position: sticky; top: 104px; display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 28px;
+  max-height: calc(100dvh - 128px); box-shadow: 0 30px 60px -30px rgba(0, 0, 0, .6); overflow-y: auto; overscroll-behavior: contain;
 }
+.co-sum > * { flex-shrink: 0; }
 .co-sum::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--stripe); }
-.co-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; max-height: 320px; overflow-y: auto; }
+.co-sum > .co-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; flex-shrink: 1; min-height: 66px; max-height: 320px; overflow-y: auto; }
 .co-items li { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; align-items: center; }
 .co-items img { width: 48px; height: 66px; object-fit: cover; border-radius: 7px; }
 .co-items b { display: block; font-size: 14px; line-height: 1.25; }
@@ -123,7 +126,7 @@
 .ord-track a { color: var(--yellow); }
 .ord-xp { margin: 0; color: var(--yellow); font-size: 10.5px; }
 .ord-brick { min-height: 120px; }
-.ord-sum { position: sticky; top: 24px; display: grid; gap: 14px; padding: 22px; border-radius: 26px; background: rgba(255, 255, 255, .8); border: 1px solid #fff; box-shadow: 0 14px 34px -24px rgba(20, 20, 22, .35); }
+.ord-sum { position: sticky; top: 104px; max-height: calc(100dvh - 128px); overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 14px; padding: 22px; border-radius: 26px; background: rgba(255, 255, 255, .8); border: 1px solid #fff; box-shadow: 0 14px 34px -24px rgba(20, 20, 22, .35); }
 .ord-sum header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .ord-sum header .dsp { font-size: 28px; }
 .ord-sum header .px { font-size: 9.5px; text-align: right; }
@@ -267,7 +270,7 @@
 
 @media (max-width: 900px) {
   .co-grid, .ord-grid, .acc-band-in, .acc-login-in { grid-template-columns: minmax(0, 1fr); }
-  .co-sum, .ord-sum { position: static; }
+  .co-sum, .ord-sum { position: static; max-height: none; overflow: hidden; }
 }
 
 @media (max-width: 640px) {
