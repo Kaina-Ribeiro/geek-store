@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, donoOnly, isStaff, staffOnly } from '../access/roles'
+import { donoOnly, isStaff, staffOnly } from '../access/roles'
 import { CONDITIONS, conditionOf } from '../lib/catalog'
 
 // One sellable unit (or a batch of identical sealed units) of a game.

@@ -3,8 +3,10 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+import { setSaveAction } from '../app/(frontend)/actions'
+
 // Client-side inventory (cart) and save slots. Prices here are display
-// snapshots only: checkout (phase 3) revalidates price and stock on the server.
+// snapshots only: the checkout recomputes price and stock on the server.
 export type CartLine = {
   id: number
   title: string
@@ -27,6 +29,8 @@ type State = {
   setQty: (id: number, qty: number) => void
   remove: (id: number) => void
   toggleSave: (gameId: number) => void
+  setSaves: (ids: number[]) => void
+  clear: () => void
   openDrawer: (open: boolean) => void
   say: (msg: string | null) => void
 }
@@ -57,7 +61,11 @@ export const useCart = create<State>()(
       toggleSave: (gameId) => {
         const { [gameId]: had, ...rest } = get().saves
         set({ saves: had ? rest : { ...rest, [gameId]: true } })
+        // Mirrors on the account when logged in (no-op for visitors).
+        void setSaveAction(gameId, !had).catch(() => null)
       },
+      setSaves: (ids) => set({ saves: Object.fromEntries(ids.map((i) => [i, true as const])) }),
+      clear: () => set({ lines: {}, drawerOpen: false }),
       openDrawer: (drawerOpen) => set({ drawerOpen }),
       say: (toast) => set({ toast }),
     }),

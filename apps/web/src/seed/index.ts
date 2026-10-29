@@ -4,7 +4,8 @@
  *
  *   pnpm seed            (from the repo root)
  *
- * Wipes games, copies, drops and media before inserting. Never run against
+ * Wipes orders, customers, subscribers, games, copies, drops and media before
+ * inserting (the team accounts are kept). Never run against
  * production data.
  */
 import crypto from 'crypto'
@@ -83,7 +84,7 @@ function ownerCredentials() {
 const payload = await getPayload({ config })
 const log = (m: string) => payload.logger.info(`[seed] ${m}`)
 
-for (const collection of ['drops', 'copies', 'games', 'media'] as const) {
+for (const collection of ['orders', 'subscribers', 'customers', 'drops', 'copies', 'games', 'media'] as const) {
   await payload.delete({ collection, where: { id: { exists: true } }, overrideAccess: true })
 }
 log('catálogo limpo')
@@ -149,6 +150,27 @@ for (const g of [...GAMES].reverse()) {
 }
 log(`${GAMES.length} jogos e ${[...copyIds.values()].flat().length} cópias`)
 
+// Three extra "Nota A" retro copies reserved for the Friday drop: hidden from
+// the catalog until it opens (or 30 min earlier for level 4+).
+const dropItems: number[] = []
+for (const g of GAMES.filter((x) => x.platform === 'ps2' || x.platform === 'xbox-360').slice(0, 3)) {
+  const found = await payload.find({ collection: 'games', where: { title: { equals: g.title } }, limit: 1, depth: 0 })
+  const base = Math.max(...g.copies.map((c) => c[1] as number))
+  const copy = await payload.create({
+    collection: 'copies',
+    data: {
+      game: found.docs[0].id,
+      condition: 'a',
+      price: Math.round(base * 1.25) - 0.1,
+      stock: 1,
+      active: true,
+      laudo: { boot: true, capa: true, manual: true, higienizado: true, surface: 'Sem riscos', testedOn: TESTED_ON[g.platform] },
+    },
+    overrideAccess: true,
+  })
+  dropItems.push(copy.id)
+}
+
 await payload.create({
   collection: 'drops',
   data: {
@@ -168,9 +190,10 @@ await payload.create({
       ['Sega Saturn', 'Console JP'],
       ['???', 'Surpresa'],
     ].map(([name, detail]) => ({ name, detail })),
+    items: dropItems,
   },
   overrideAccess: true,
 })
-log('drop de sexta criado')
+log(`drop de sexta criado com ${dropItems.length} cópias reservadas`)
 
 process.exit(0)

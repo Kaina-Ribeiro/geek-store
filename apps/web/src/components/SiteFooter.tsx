@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
+import { STORE } from '../lib/store-info'
 import { Newsletter } from './Newsletter'
 
 export function SiteFooter() {
@@ -20,7 +21,7 @@ export function SiteFooter() {
           <ul>
             <li><Link href="/loja">Loja</Link></li>
             <li><Link href="/#plataformas">Plataformas</Link></li>
-            <li><Link href="/#drop">Drop de sexta</Link></li>
+            <li><Link href="/drop">Drop de sexta</Link></li>
             <li><Link href="/#troca">Troca</Link></li>
           </ul>
         </div>
@@ -28,22 +29,34 @@ export function SiteFooter() {
           <h4 className="px">Ajuda</h4>
           <ul>
             <li><Link href="/#laudo">Como funciona o laudo</Link></li>
-            <li>Prazos e frete</li>
-            <li>Trocas e devoluções</li>
-            <li>Rastrear pedido</li>
+            <li><Link href="/frete-e-prazos">Prazos e frete</Link></li>
+            <li><Link href="/trocas-e-devolucoes">Trocas e devoluções</Link></li>
+            <li><Link href="/rastreio">Rastrear pedido</Link></li>
+            <li><Link href="/conta">Minha conta</Link></li>
           </ul>
         </div>
         <div>
           <h4 className="px">Contato</h4>
           <ul>
-            <li>Taubaté · SP</li>
-            <li>Seg a sáb · 10h às 19h</li>
+            <li>{STORE.city}</li>
+            <li>{STORE.hours}</li>
             <li>
-              <a href="https://www.instagram.com/_checkpoint_geek_/" target="_blank" rel="noreferrer">
+              <a href={STORE.instagram} target="_blank" rel="noreferrer">
                 Instagram
               </a>
             </li>
-            <li>WhatsApp [a definir]</li>
+            <li>
+              {STORE.whatsapp ? (
+                <a href={`https://wa.me/${STORE.whatsapp}`} target="_blank" rel="noreferrer">
+                  WhatsApp
+                </a>
+              ) : (
+                'WhatsApp [a definir]'
+              )}
+            </li>
+            <li>
+              <a href={`mailto:${STORE.email}`}>{STORE.email}</a>
+            </li>
           </ul>
         </div>
       </div>
@@ -56,13 +69,15 @@ export function SiteFooter() {
         </p>
       </div>
       <div className="wrap ftr-legal">
-        <span>© {new Date().getFullYear()} Checkpoint Geek · CNPJ [a definir]</span>
+        <span>
+          © {new Date().getFullYear()} Checkpoint Geek · CNPJ {STORE.cnpj} ·{' '}
+          <Link href="/termos">Termos</Link> · <Link href="/privacidade">Privacidade</Link>
+        </span>
         <div className="mono ftr-pay">
           <span className="is-pix">PIX</span>
           <span>VISA</span>
           <span>MASTER</span>
           <span>ELO</span>
-          <span>BOLETO</span>
         </div>
       </div>
     </footer>

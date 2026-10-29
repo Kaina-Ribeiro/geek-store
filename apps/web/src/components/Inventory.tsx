@@ -9,10 +9,9 @@ import { useShallow } from 'zustand/react/shallow'
 import { brl } from '../lib/catalog'
 import { cartTotal, useCart } from '../store/cart'
 
-const FREE_SHIPPING = 299
+import { FREE_SHIPPING_FROM as FREE_SHIPPING } from '../lib/checkout-math'
 
-// Inventory drawer (cart). Checkout with Mercado Pago and Melhor Envio
-// arrives in phase 3; until then the CTA explains it instead of faking it.
+// Inventory drawer (cart). The CTA leads to the one-page checkout.
 export function Inventory() {
   const open = useCart((s) => s.drawerOpen)
   const setOpen = useCart((s) => s.openDrawer)
@@ -96,10 +95,10 @@ export function Inventory() {
                 <b className="mono">{brl(total)}</b>
               </div>
               <small className="px inv-xp">Você ganha +{Math.round(total)} XP</small>
-              <button className="btn btn-yellow inv-cta" disabled title="Checkout chega na fase 3 (Mercado Pago)">
+              <Link className="btn btn-yellow inv-cta" href="/checkout" onClick={() => setOpen(false)}>
                 Finalizar compra
-              </button>
-              <small className="inv-note">Pagamento por Pix e cartão chega na próxima etapa do projeto.</small>
+              </Link>
+              <small className="inv-note">Pix com 5% off ou cartão em até 6x, no ambiente seguro do Mercado Pago.</small>
             </footer>
           </>
         )}

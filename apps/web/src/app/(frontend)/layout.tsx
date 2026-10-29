@@ -1,10 +1,12 @@
 import '@checkpoint/ui/styles.css'
 import './site.css'
+import './commerce.css'
 
 import type { Metadata, Viewport } from 'next'
 import { Archivo, Geist, Geist_Mono, Silkscreen } from 'next/font/google'
 import type { ReactNode } from 'react'
 
+import { Analytics } from '../../components/analytics'
 import { Inventory } from '../../components/Inventory'
 import { StoreHydrator } from '../../components/StoreHydrator'
 import { Toast } from '../../components/Toast'
@@ -32,6 +34,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Inventory />
         <Toast />
         <StoreHydrator />
+        <Analytics />
       </body>
     </html>
   )

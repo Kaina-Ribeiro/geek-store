@@ -6,10 +6,13 @@ import { TruckIcon } from '@checkpoint/ui'
 
 import { BuyBox } from '../../../../components/product/BuyBox'
 import { Gallery } from '../../../../components/product/Gallery'
+import { ShipQuote } from '../../../../components/product/ShipQuote'
+import { SoldOut } from '../../../../components/product/SoldOut'
 import { ShopCard } from '../../../../components/ShopCard'
 import { SiteFooter } from '../../../../components/SiteFooter'
 import { SiteHeader } from '../../../../components/SiteHeader'
 import { brl } from '../../../../lib/catalog'
+import { env } from '../../../../lib/env'
 import { getProduct, getRelated } from '../../../../lib/data'
 
 type Params = Promise<{ slug: string }>
@@ -56,9 +59,34 @@ export default async function ProductPage({ params, searchParams }: { params: Pa
       ]
   const tradeIn = copy ? Math.round(copy.pixValue * 0.69 * 100) / 100 : 0
 
+  // Structured data for Google Shopping / rich results.
+  const offers = p.variants
+    .filter((v) => v.copy)
+    .map((v) => ({
+      '@type': 'Offer',
+      name: v.label,
+      price: v.copy!.pixValue.toFixed(2),
+      priceCurrency: 'BRL',
+      availability: 'https://schema.org/InStock',
+      itemCondition: v.value === 'lacrado' ? 'https://schema.org/NewCondition' : 'https://schema.org/UsedCondition',
+      url: `${env.siteUrl}/jogo/${p.game.slug}?estado=${v.value}`,
+    }))
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: `${p.game.title} (${p.game.platform})`,
+    image: `${env.siteUrl}${p.game.cover.url}`,
+    description: p.game.description || undefined,
+    brand: { '@type': 'Brand', name: p.game.platform },
+    offers: offers.length
+      ? { '@type': 'AggregateOffer', priceCurrency: 'BRL', lowPrice: offers.reduce((m, o) => Math.min(m, Number(o.price)), Infinity).toFixed(2), offerCount: offers.length, offers }
+      : { '@type': 'Offer', availability: 'https://schema.org/OutOfStock', priceCurrency: 'BRL', price: '0' },
+  }
+
   return (
     <>
       <SiteHeader />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
       <main className="theme-light pdp">
         <div className="wrap">
           <nav className="px crumbs" aria-label="Você está em">
@@ -159,7 +187,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pa
                 </div>
               </div>
 
-              {copy ? <BuyBox item={copy} /> : <p className="pdp-out">Esse jogo está sem estoque no momento.</p>}
+              {copy ? <BuyBox item={copy} /> : <SoldOut gameId={p.game.id} />}
 
               {copy && (
                 <p className="trade-hint">
@@ -168,13 +196,16 @@ export default async function ProductPage({ params, searchParams }: { params: Pa
                 </p>
               )}
 
-              <div className="ship-box">
-                <TruckIcon />
-                <span>
-                  <b>Envio para todo o Brasil ou retirada em Taubaté</b>
-                  <small>O cálculo de frete por CEP (Correios e Jadlog) chega junto com o checkout.</small>
-                </span>
-              </div>
+              {copy ? (
+                <ShipQuote pixValue={copy.pixValue} />
+              ) : (
+                <div className="ship-box">
+                  <TruckIcon />
+                  <span>
+                    <b>Envio para todo o Brasil ou retirada em Taubaté</b>
+                  </span>
+                </div>
+              )}
               {copy && <small className="px pdp-xp">Você ganha +{Math.round(copy.pixValue)} XP com esta compra</small>}
             </div>
           </div>

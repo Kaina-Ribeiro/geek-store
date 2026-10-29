@@ -1,7 +1,6 @@
 import 'server-only'
 
-import config from '@payload-config'
-import { getPayload, type Where } from 'payload'
+import type { Where } from 'payload'
 import { cache } from 'react'
 
 import type { Copy, Drop, Game, Media } from '../payload-types'
@@ -16,6 +15,8 @@ import {
   PLATFORMS,
   type PlatformGroup,
 } from './catalog'
+import { lockedCopyIds } from './drops'
+import { getClient } from './payload'
 
 export type Img = { url: string; width: number; height: number; alt: string }
 
@@ -43,7 +44,7 @@ export type CardItem = {
   createdAt: string
 }
 
-const payload = cache(() => getPayload({ config }))
+const payload = getClient
 
 const img = (m: number | Media | null | undefined, size: 'card' | 'large' | 'thumb' = 'card'): Img => {
   if (!m || typeof m === 'number') return { url: '/brand/cover-fallback.svg', width: 600, height: 800, alt: '' }
@@ -91,8 +92,15 @@ const inStock: Where = { and: [{ active: { equals: true } }, { stock: { greater_
 
 const allCopies = cache(async () => {
   const p = await payload()
-  const res = await p.find({ collection: 'copies', where: inStock, depth: 2, limit: 1000, sort: '-createdAt' })
-  return res.docs.map((c) => toCard(c)).filter((c): c is CardItem => Boolean(c))
+  const [res, locked] = await Promise.all([
+    p.find({ collection: 'copies', where: inStock, depth: 2, limit: 1000, sort: '-createdAt' }),
+    lockedCopyIds(),
+  ])
+  // Copies waiting for a Friday drop stay out of the catalog until it opens.
+  return res.docs
+    .filter((c) => !locked.has(c.id))
+    .map((c) => toCard(c))
+    .filter((c): c is CardItem => Boolean(c))
 })
 
 const onePerGame = (items: CardItem[]) => {
@@ -126,6 +134,9 @@ const CONSOLE_COPY: Record<string, Omit<ConsoleSlide, 'count' | 'from' | 'covers
 export type Featured = CardItem & { large: Img }
 
 export type DropView = {
+  id: number
+  open: boolean
+  items: CardItem[]
   title: string
   blurb: string
   opensAt: string
@@ -169,13 +180,18 @@ export const getHome = cache(async () => {
   const drops = await p.find({ collection: 'drops', where: { opensAt: { greater_than: now } }, sort: 'opensAt', limit: 1 })
   const d: Drop | undefined =
     drops.docs[0] ?? (await p.find({ collection: 'drops', sort: '-opensAt', limit: 1 })).docs[0]
+  const dropItems = d ? await dropCards(d) : []
+  const sold = d ? (d.items || []).length - dropItems.length : 0
   const drop: DropView | null = d
     ? {
+        id: d.id,
+        open: new Date(d.opensAt).getTime() <= Date.now(),
+        items: new Date(d.opensAt).getTime() <= Date.now() ? dropItems : [],
         title: d.title,
         blurb: d.blurb || '',
         opensAt: d.opensAt,
         slots: d.slots ?? 9,
-        reserved: d.reserved ?? 0,
+        reserved: Math.min(d.slots ?? 9, (d.reserved ?? 0) + Math.max(0, sold)),
         earlyLevel: d.earlyLevel ?? 4,
         teasers: (d.teasers || []).map((t) => ({ name: t.name, detail: t.detail || '' })),
       }
@@ -192,6 +208,20 @@ export const getHome = cache(async () => {
     retroMini: unique.filter((i) => i.group === 'Retrô').slice(0, 3).map((i) => i.cover),
   }
 })
+
+// In-stock copies of a drop (ignores the drop lock: callers decide).
+export async function dropCards(d: Drop) {
+  const ids = (d.items || []).map((i) => (typeof i === 'number' ? i : i.id))
+  if (!ids.length) return []
+  const p = await payload()
+  const res = await p.find({
+    collection: 'copies',
+    where: { and: [{ id: { in: ids } }, ...(inStock.and ?? [])] },
+    depth: 2,
+    limit: ids.length,
+  })
+  return res.docs.map((c) => toCard(c)).filter((c): c is CardItem => Boolean(c))
+}
 
 export type ShopFilters = {
   plataforma?: string
@@ -278,6 +308,8 @@ export const getProduct = cache(async (slug: string): Promise<ProductView | null
     sort: 'price',
     limit: 50,
   })
+  const locked = await lockedCopyIds()
+  copies.docs = copies.docs.filter((c) => !locked.has(c.id))
   const plat = platformOf(game.platform)
   return {
     game: {

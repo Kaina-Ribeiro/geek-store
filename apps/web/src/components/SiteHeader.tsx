@@ -12,7 +12,7 @@ const NAV = [
   { href: '/loja', label: 'Loja' },
   { href: '/#plataformas', label: 'Plataformas' },
   { href: '/#laudo', label: 'Laudo' },
-  { href: '/#drop', label: 'Drop de sexta' },
+  { href: '/drop', label: 'Drop de sexta' },
   { href: '/#troca', label: 'Troca' },
 ]
 
@@ -58,6 +58,9 @@ export function SiteHeader({ variant = 'bar' }: { variant?: 'overlay' | 'bar' })
             <span>Buscar jogo, console…</span>
             <kbd className="mono">Ctrl K</kbd>
           </Link>
+          <Link href="/conta" className="icon-btn hdr-acc" aria-label="Minha conta">
+            <UserIcon size={19} />
+          </Link>
           <button
             className="icon-btn"
             aria-label={`Abrir inventário, ${count === 1 ? '1 item' : `${count} itens`}`}
@@ -89,7 +92,7 @@ export function SiteHeader({ variant = 'bar' }: { variant?: 'overlay' | 'bar' })
           </span>
           Inventário
         </button>
-        <Link href="/#xp">
+        <Link href="/conta" aria-current={pathname.startsWith('/conta') ? 'page' : undefined}>
           <UserIcon />
           Perfil
         </Link>

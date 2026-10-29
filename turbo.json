@@ -3,15 +3,32 @@
   "ui": "tui",
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "env": ["DATABASE_URL", "PAYLOAD_SECRET", "NEXT_PUBLIC_SITE_URL"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "env": [
+        "DATABASE_URL",
+        "PAYLOAD_SECRET",
+        "NEXT_PUBLIC_*",
+        "MP_*",
+        "MELHOR_ENVIO_*",
+        "STORE_*",
+        "RESEND_API_KEY",
+        "EMAIL_FROM",
+        "CRON_SECRET",
+        "S3_*"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**"
+      ]
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "lint": {},
-    "typecheck": {}
+    "typecheck": {},
+    "test": {}
   }
 }

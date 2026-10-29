@@ -233,20 +233,32 @@ Estimativa: fases 1–3 são o grosso (loja vendendo); 4–5 são diferenciais; 
 
 ### Status (29/10/2026)
 
-**Fases 1 e 2 implementadas** (ver `README.md` para rodar):
-- Monorepo pnpm + Turborepo; `apps/web` com Next.js 16.3 + Payload 3.92 (painel em `/admin`, em português); `packages/ui` com tokens, card, selos e ícones.
-- Coleções: Games, Copies (cópia única com laudo e fotos), Drops, Media (WebP em 3 tamanhos), Customers, Users com papéis Dono/Equipe.
-- Páginas: Home completa (hero 3D, vitrine com filtros, consoles arrastáveis, laudo, drop com contagem real, simulador de troca, passe XP, rodapé), `/loja` com filtros na URL, `/jogo/[slug]` com variações por estado, 404.
-- Inventário (carrinho) em gaveta com frete grátis progressivo, save slots e toast de XP, salvos no navegador.
-- Responsivo: 1440 / 1360 / 1100 / 900 / 768 / 640, com barra de abas no celular e barra de compra fixa no produto.
-- Seed com 17 jogos reais, 21 cópias e o drop de sexta.
+**Fases 1 a 6 implementadas no código.** O que falta para vender de verdade depende de contas e dados do cliente (lista abaixo). Ver `README.md` para rodar e publicar.
+
+| Fase | Feito |
+|---|---|
+| 1–2 | Monorepo, Payload em português, papéis Dono/Equipe, catálogo com cópia única e laudo, Home, Loja com filtros na URL, Produto, Busca, inventário, seed com 17 jogos |
+| 3 | Checkout em 1 página (dados, entrega, pagamento); frete por CEP (Melhor Envio, com tabela de reserva) e na página do produto; Pix e cartão pelo Mercado Pago (Bricks, sem dado de cartão no servidor); reserva de 30 min com baixa de estoque atômica; webhook com assinatura; página do pedido com QR, contagem e status ao vivo; e-mails de pedido, pagamento, envio e aviso para a loja; pedidos no painel com rastreio |
+| 4 | Conta sem senha (link mágico de 15 min, uso único); pedidos de visitante entram na conta pelo e-mail; XP creditado no pagamento e estornado no cancelamento; níveis; 6 conquistas calculadas; save slots sincronizados; rastreio por número + e-mail |
+| 5 | Drop de sexta real: cópias escondidas até abrir, acesso antecipado 30 min para nível 4+, aviso por e-mail quando abre (tarefa agendada), vitrine do drop aberto; newsletter com consentimento e descadastro; simulador de troca levando ao WhatsApp da loja |
+| 6 | Privacidade (LGPD), termos, trocas e devoluções (7 dias + garantia de 90), frete e prazos; aviso de cookies que só carrega GA4/Pixel após aceite; sitemap, robots e dados estruturados de produto; cabeçalhos de segurança; Postgres com migrações automáticas; fotos no R2; testes unitários, teste de fumaça do fluxo e Playwright |
 
 Decisões tomadas na implementação:
-- **CSS com tokens em vez de Tailwind**: o visual aprovado é muito específico (vidro, fitas, case 3D); CSS puro com variáveis portou o canvas fielmente e com menos código.
-- **SQLite em desenvolvimento**, Postgres em produção (mesmo schema, troca de adapter).
-- Checkout desativado com aviso honesto ("chega na próxima etapa") até a fase 3.
+- **CSS com tokens em vez de Tailwind**: o visual aprovado é muito específico (vidro, fitas, case 3D).
+- **SQLite em desenvolvimento**, Postgres em produção (mesmo schema, migrações em `src/migrations`).
+- **Modo de simulação**: sem chaves, Pix/cartão são simulados (só fora de produção), o frete usa tabela por região e os e-mails vão para o log. Permite testar tudo antes de o cliente abrir as contas.
+- **Frete grátis a partir de R$ 299 no Pix**: o serviço mais barato fica grátis; o mais rápido paga a diferença.
+- **Login sem senha** em vez de Google: não depende de credenciais OAuth e evita senha fraca. Google pode entrar depois.
+- **CPF obrigatório no checkout**: o Mercado Pago, a nota fiscal e a etiqueta do Melhor Envio pedem.
 
-**Próximo: fase 3** (Mercado Pago + Melhor Envio + pedidos), depende das perguntas 1 e 2 abaixo.
+Para entrar no ar (depende do cliente):
+1. Conta Mercado Pago com as credenciais (testar com `TEST-` antes) e a URL do webhook.
+2. Conta Melhor Envio com saldo para etiquetas. A compra da etiqueta continua no painel do Melhor Envio; o código de rastreio é colado no pedido.
+3. CNPJ, razão social, endereço, WhatsApp e horário reais (variáveis `NEXT_PUBLIC_STORE_*`). Os textos legais precisam de revisão do cliente ou de um advogado.
+4. Domínio, Resend com domínio verificado, Neon, R2 e Vercel Pro.
+5. Nota fiscal (Bling ou NFe.io) se houver CNPJ: ainda não integrada.
+6. 2FA para o dono no painel: o Payload não tem nativo; avaliar plugin antes do lançamento.
+7. Tabela real de compra da troca (hoje é estimativa).
 
 ---
 

@@ -7,7 +7,10 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "seed": "pnpm --filter web seed"
+    "seed": "pnpm --filter web seed",
+    "test": "turbo run test",
+    "smoke": "pnpm --filter web smoke",
+    "e2e": "pnpm --filter web e2e"
   },
   "devDependencies": {
     "turbo": "^2.6.0"

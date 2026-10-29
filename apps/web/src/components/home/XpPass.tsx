@@ -1,4 +1,7 @@
-// Demo of the loyalty pass. Real XP comes from paid orders in phase 4.
+import Link from 'next/link'
+
+// Example pass on the Home (static, cached). Each customer's real XP, level
+// and achievements live on /conta.
 const TIERS = [
   { n: 1, t: 'Novato', r: 'Cupom de boas-vindas', req: 0, bg: '#22B04B', state: 1 },
   { n: 2, t: 'Aventureiro', r: 'Frete grátis na próxima', req: 500, bg: '#2D6BF0', state: 1 },
@@ -35,7 +38,10 @@ export function XpPass() {
             </h2>
           </div>
           <p className="sec-lead">
-            R$ 1 vale 1 XP. Trocas e avaliações também contam. Os níveis destravam benefícios de verdade, para sempre.
+            R$ 1 vale 1 XP, creditado quando o pagamento confirma. Os níveis destravam benefícios de verdade, para sempre.{' '}
+            <Link href="/conta" className="xp-link">
+              Ver meu passe →
+            </Link>
           </p>
         </div>
         <div className="xp-grid">

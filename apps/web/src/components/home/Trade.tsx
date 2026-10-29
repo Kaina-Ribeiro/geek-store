@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 
+import { whatsappLink } from '../../lib/store-info'
+
 // Base credit per game (R$) by platform and multiplier by average condition.
 // Placeholder table until the owner defines the real buying prices.
 const TP = { PS5: 95, 'Switch 2': 130, Switch: 85, PS4: 40, 'Xbox Series': 75, 'Xbox One': 30, Retrô: 60 } as const
@@ -137,7 +139,7 @@ export function Trade() {
                 </button>
                 <a
                   aria-label="Enviar simulação pelo WhatsApp"
-                  href={`https://wa.me/?text=${encodeURIComponent(`Oi! Quero trocar ${qty} jogo(s) de ${plat}, estado ${cond}. Simulação: R$${value}.`)}`}
+                  href={whatsappLink(`Oi! Quero trocar ${qty} jogo(s) de ${plat}, estado ${cond}. Simulação: R$${value}.`)}
                   target="_blank"
                   rel="noreferrer"
                 >

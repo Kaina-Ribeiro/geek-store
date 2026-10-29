@@ -12,13 +12,19 @@
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
-    "seed": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/index.ts"
+    "seed": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/index.ts",
+    "smoke": "cross-env NODE_OPTIONS=\"--no-deprecation --conditions=react-server\" payload run src/scripts/smoke-checkout.ts",
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@checkpoint/ui": "workspace:*",
+    "@payloadcms/db-postgres": "3.92.1",
     "@payloadcms/db-sqlite": "3.92.1",
+    "@payloadcms/email-resend": "3.92.1",
     "@payloadcms/next": "3.92.1",
     "@payloadcms/richtext-lexical": "3.92.1",
+    "@payloadcms/storage-s3": "3.92.1",
     "@payloadcms/translations": "3.92.1",
     "@payloadcms/ui": "3.92.1",
     "cross-env": "^7.0.3",
@@ -26,18 +32,23 @@
     "motion": "^12.0.0",
     "next": "16.3.3",
     "payload": "3.92.1",
+    "qrcode": "^1.5.4",
     "react": "19.2.6",
     "react-dom": "19.2.6",
+    "server-only": "^0.0.1",
     "sharp": "0.35.4",
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/node": "22.19.9",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "eslint": "^9.16.0",
     "eslint-config-next": "16.3.3",
     "prettier": "^3.4.2",
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "vitest": "^5.0.5"
   }
 }

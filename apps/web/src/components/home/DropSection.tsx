@@ -1,7 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useEffect, useState, useTransition } from 'react'
 
+import { subscribeAction } from '../../app/(frontend)/actions'
 import type { DropView } from '../../lib/data'
 
 const pad = (n: number) => String(Math.max(0, n)).padStart(2, '0')
@@ -11,9 +14,13 @@ function useCountdown(target: string) {
   // mismatches from the clock).
   const [now, setNow] = useState<number | null>(null)
   useEffect(() => {
-    setNow(Date.now())
-    const t = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(t)
+    const tick = () => setNow(Date.now())
+    const first = setTimeout(tick, 0)
+    const t = setInterval(tick, 1000)
+    return () => {
+      clearTimeout(first)
+      clearInterval(t)
+    }
   }, [])
   const ms = now === null ? 0 : Math.max(0, new Date(target).getTime() - now)
   const s = Math.floor(ms / 1000)
@@ -25,9 +32,59 @@ function useCountdown(target: string) {
   ]
 }
 
-export function DropSection({ drop }: { drop: DropView }) {
+function NotifyForm() {
+  const [state, setState] = useState<'idle' | 'form' | 'done'>('idle')
+  const [email, setEmail] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [pending, start] = useTransition()
+
+  if (state === 'done')
+    return (
+      <span className="btn drop-notified" role="status">
+        ✓ Vamos te avisar
+      </span>
+    )
+  if (state === 'idle')
+    return (
+      <button className="btn drop-notify" onClick={() => setState('form')}>
+        Me avise quando abrir
+      </button>
+    )
+  return (
+    <form
+      className="drop-form"
+      onSubmit={(e) => {
+        e.preventDefault()
+        start(async () => {
+          const r = await subscribeAction(email, 'drop')
+          if (!r.ok) return setError(r.error)
+          setState('done')
+        })
+      }}
+    >
+      <label htmlFor="drop-email" className="sr-only">
+        Seu e-mail
+      </label>
+      <input
+        id="drop-email"
+        type="email"
+        required
+        autoFocus
+        autoComplete="email"
+        placeholder="seu@email.com"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <button className="btn btn-yellow" disabled={pending}>
+        Avisar
+      </button>
+      {error && <small role="alert">{error}</small>}
+    </form>
+  )
+}
+
+export function DropSection({ drop, standalone = false }: { drop: DropView; standalone?: boolean }) {
   const clock = useCountdown(drop.opensAt)
-  const [notify, setNotify] = useState(false)
   const [open, setOpen] = useState<Record<number, boolean>>({})
   const left = Math.max(0, drop.slots - drop.reserved)
   const [first, ...rest] = drop.title.split(' ')
@@ -52,6 +109,12 @@ export function DropSection({ drop }: { drop: DropView }) {
             {drop.blurb ||
               `Toda sexta abrimos um lote garimpado. Quem tem nível ${drop.earlyLevel} ou mais entra 30 minutos antes. Quando acaba, acaba.`}
           </p>
+          {drop.open ? (
+            <p className="px drop-live">
+              <i className="blink" />
+              Aberto agora · quando acaba, acaba
+            </p>
+          ) : (
           <div className="clock" role="timer" aria-label="Tempo até abrir o drop">
             {clock.map((c) => (
               <div key={c.l} className="clock-unit">
@@ -63,6 +126,7 @@ export function DropSection({ drop }: { drop: DropView }) {
               </div>
             ))}
           </div>
+          )}
           <div className="drop-progress">
             <div>
               <span>
@@ -75,16 +139,32 @@ export function DropSection({ drop }: { drop: DropView }) {
             </div>
           </div>
           <div className="drop-cta">
-            <button
-              className="btn"
-              aria-pressed={notify}
-              onClick={() => setNotify((n) => !n)}
-              style={{ background: notify ? '#FFC61A' : '#141416', color: notify ? '#141000' : '#fff' }}
-            >
-              {notify ? '✓ Vamos te avisar' : 'Me avise quando abrir'}
-            </button>
+            {drop.open ? (
+              <Link className="btn drop-notify" href="/drop">
+                O drop abriu · ver os jogos
+              </Link>
+            ) : (
+              <>
+                <NotifyForm />
+                {!standalone && (
+                  <Link className="drop-link" href="/drop">
+                    Nível {drop.earlyLevel}+? Entre 30 min antes →
+                  </Link>
+                )}
+              </>
+            )}
           </div>
         </div>
+        {drop.open && drop.items.length > 0 ? (
+          <div className="qgrid is-open">
+            {drop.items.slice(0, 9).map((it) => (
+              <Link key={it.id} href={it.href} className="qb qb-item" aria-label={`${it.title}, ${it.pix}`}>
+                <Image src={it.cover.url} alt="" width={160} height={210} />
+                <small className="mono">{it.pix}</small>
+              </Link>
+            ))}
+          </div>
+        ) : (
         <div className="qgrid">
           {drop.teasers.slice(0, 9).map((t, i) => (
             <button
@@ -104,6 +184,7 @@ export function DropSection({ drop }: { drop: DropView }) {
             </button>
           ))}
         </div>
+        )}
       </div>
     </section>
   )

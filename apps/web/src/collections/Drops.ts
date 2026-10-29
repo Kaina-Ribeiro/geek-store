@@ -37,6 +37,22 @@ export const Drops: CollectionConfig = {
         { name: 'detail', label: 'Detalhe', type: 'text' },
       ],
     },
-    { name: 'items', label: 'Cópias do drop', type: 'relationship', relationTo: 'copies', hasMany: true },
+    {
+      name: 'items',
+      label: 'Cópias do drop',
+      type: 'relationship',
+      relationTo: 'copies',
+      hasMany: true,
+      admin: {
+        description:
+          'Essas cópias somem da loja até o drop abrir. Quem tem o nível de acesso antecipado vê 30 min antes em /drop.',
+      },
+    },
+    {
+      name: 'alertSentAt',
+      label: 'Aviso enviado em',
+      type: 'date',
+      admin: { readOnly: true, position: 'sidebar', description: 'E-mail "o drop abriu" para quem pediu aviso.' },
+    },
   ],
 }

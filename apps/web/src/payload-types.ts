@@ -68,9 +68,11 @@ export interface Config {
   };
   blocks: {};
   collections: {
+    orders: Order;
     games: Game;
     copies: Copy;
     drops: Drop;
+    subscribers: Subscriber;
     media: Media;
     customers: Customer;
     users: User;
@@ -85,9 +87,11 @@ export interface Config {
     };
   };
   collectionsSelect: {
+    orders: OrdersSelect<false> | OrdersSelect<true>;
     games: GamesSelect<false> | GamesSelect<true>;
     copies: CopiesSelect<false> | CopiesSelect<true>;
     drops: DropsSelect<false> | DropsSelect<true>;
+    subscribers: SubscribersSelect<false> | SubscribersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -147,6 +151,115 @@ export interface UserAuthOperations {
     email: string;
     password: string;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders".
+ */
+export interface Order {
+  id: number;
+  number?: string | null;
+  status: 'aguardando' | 'pago' | 'enviado' | 'pronto' | 'entregue' | 'expirado' | 'cancelado';
+  /**
+   * Cole o código ao mudar para "Enviado": o cliente recebe por e-mail.
+   */
+  trackingCode?: string | null;
+  customer?: (number | null) | Customer;
+  name: string;
+  email: string;
+  phone?: string | null;
+  cpf?: string | null;
+  items: {
+    copy: number | Copy;
+    title: string;
+    platform?: string | null;
+    group?: string | null;
+    condition?: string | null;
+    unitPrice: number;
+    qty: number;
+    cover?: string | null;
+    id?: string | null;
+  }[];
+  shipping?: {
+    method?: string | null;
+    methodId?: string | null;
+    price?: number | null;
+    days?: number | null;
+    cep?: string | null;
+    street?: string | null;
+    number?: string | null;
+    complement?: string | null;
+    district?: string | null;
+    city?: string | null;
+    uf?: string | null;
+  };
+  payment?: {
+    method?: ('pix' | 'card') | null;
+    status?: string | null;
+    statusDetail?: string | null;
+    mpId?: string | null;
+    installments?: number | null;
+    attempts?: number | null;
+    expiresAt?: string | null;
+    paidAt?: string | null;
+    qrCode?: string | null;
+    qrBase64?: string | null;
+    simulated?: boolean | null;
+  };
+  subtotal: number;
+  discount?: number | null;
+  total: number;
+  xp?: number | null;
+  drop?: (number | null) | Drop;
+  accessToken?: string | null;
+  stockReleased?: boolean | null;
+  xpCredited?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers".
+ */
+export interface Customer {
+  id: number;
+  name?: string | null;
+  phone?: string | null;
+  xp?: number | null;
+  saves?: (number | Game)[] | null;
+  address?: {
+    cep?: string | null;
+    street?: string | null;
+    number?: string | null;
+    complement?: string | null;
+    district?: string | null;
+    city?: string | null;
+    uf?: string | null;
+  };
+  loginLink?: {
+    hash?: string | null;
+    expiresAt?: string | null;
+    sentAt?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'customers';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -266,38 +379,31 @@ export interface Drop {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Essas cópias somem da loja até o drop abrir. Quem tem o nível de acesso antecipado vê 30 min antes em /drop.
+   */
   items?: (number | Copy)[] | null;
+  /**
+   * E-mail "o drop abriu" para quem pediu aviso.
+   */
+  alertSentAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customers".
+ * via the `definition` "subscribers".
  */
-export interface Customer {
+export interface Subscriber {
   id: number;
-  name?: string | null;
-  xp?: number | null;
-  saves?: (number | Game)[] | null;
+  email: string;
+  newsletter?: boolean | null;
+  dropAlerts?: boolean | null;
+  source?: string | null;
+  consentAt?: string | null;
+  unsubscribedAt?: string | null;
   updatedAt: string;
   createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  resetPasswordRequestedAt?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'customers';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -355,6 +461,10 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
+        relationTo: 'orders';
+        value: number | Order;
+      } | null)
+    | ({
         relationTo: 'games';
         value: number | Game;
       } | null)
@@ -365,6 +475,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'drops';
         value: number | Drop;
+      } | null)
+    | ({
+        relationTo: 'subscribers';
+        value: number | Subscriber;
       } | null)
     | ({
         relationTo: 'media';
@@ -432,6 +546,73 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders_select".
+ */
+export interface OrdersSelect<T extends boolean = true> {
+  number?: T;
+  status?: T;
+  trackingCode?: T;
+  customer?: T;
+  name?: T;
+  email?: T;
+  phone?: T;
+  cpf?: T;
+  items?:
+    | T
+    | {
+        copy?: T;
+        title?: T;
+        platform?: T;
+        group?: T;
+        condition?: T;
+        unitPrice?: T;
+        qty?: T;
+        cover?: T;
+        id?: T;
+      };
+  shipping?:
+    | T
+    | {
+        method?: T;
+        methodId?: T;
+        price?: T;
+        days?: T;
+        cep?: T;
+        street?: T;
+        number?: T;
+        complement?: T;
+        district?: T;
+        city?: T;
+        uf?: T;
+      };
+  payment?:
+    | T
+    | {
+        method?: T;
+        status?: T;
+        statusDetail?: T;
+        mpId?: T;
+        installments?: T;
+        attempts?: T;
+        expiresAt?: T;
+        paidAt?: T;
+        qrCode?: T;
+        qrBase64?: T;
+        simulated?: T;
+      };
+  subtotal?: T;
+  discount?: T;
+  total?: T;
+  xp?: T;
+  drop?: T;
+  accessToken?: T;
+  stockReleased?: T;
+  xpCredited?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "games_select".
  */
 export interface GamesSelect<T extends boolean = true> {
@@ -493,6 +674,21 @@ export interface DropsSelect<T extends boolean = true> {
         id?: T;
       };
   items?: T;
+  alertSentAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscribers_select".
+ */
+export interface SubscribersSelect<T extends boolean = true> {
+  email?: T;
+  newsletter?: T;
+  dropAlerts?: T;
+  source?: T;
+  consentAt?: T;
+  unsubscribedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -554,8 +750,27 @@ export interface MediaSelect<T extends boolean = true> {
  */
 export interface CustomersSelect<T extends boolean = true> {
   name?: T;
+  phone?: T;
   xp?: T;
   saves?: T;
+  address?:
+    | T
+    | {
+        cep?: T;
+        street?: T;
+        number?: T;
+        complement?: T;
+        district?: T;
+        city?: T;
+        uf?: T;
+      };
+  loginLink?:
+    | T
+    | {
+        hash?: T;
+        expiresAt?: T;
+        sentAt?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   email?: T;
