@@ -1,0 +1,22 @@
+# Postgres local para desenvolvimento (mesma versão do Neon em produção).
+# Porta 5434 para não colidir com outros projetos nas 5432/5433.
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: checkpoint
+      POSTGRES_PASSWORD: checkpoint
+      POSTGRES_DB: checkpoint
+    ports:
+      - '127.0.0.1:5434:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U checkpoint']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:

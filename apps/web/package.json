@@ -10,6 +10,7 @@
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
     "typecheck": "tsc --noEmit",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
+    "db:migrate": "cross-env NODE_OPTIONS=--no-deprecation payload migrate",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "seed": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/index.ts",
@@ -20,7 +21,6 @@
   "dependencies": {
     "@checkpoint/ui": "workspace:*",
     "@payloadcms/db-postgres": "3.92.1",
-    "@payloadcms/db-sqlite": "3.92.1",
     "@payloadcms/email-resend": "3.92.1",
     "@payloadcms/next": "3.92.1",
     "@payloadcms/richtext-lexical": "3.92.1",

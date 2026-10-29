@@ -245,7 +245,7 @@ Estimativa: fases 1–3 são o grosso (loja vendendo); 4–5 são diferenciais; 
 
 Decisões tomadas na implementação:
 - **CSS com tokens em vez de Tailwind**: o visual aprovado é muito específico (vidro, fitas, case 3D).
-- **SQLite em desenvolvimento**, Postgres em produção (mesmo schema, migrações em `src/migrations`).
+- **Postgres em todo lugar**: Docker no desenvolvimento, Neon em produção. O schema só muda por migração (`src/migrations`), então o ambiente local roda o mesmo que produção.
 - **Modo de simulação**: sem chaves, Pix/cartão são simulados (só fora de produção), o frete usa tabela por região e os e-mails vão para o log. Permite testar tudo antes de o cliente abrir as contas.
 - **Frete grátis a partir de R$ 299 no Pix**: o serviço mais barato fica grátis; o mais rápido paga a diferença.
 - **Login sem senha** em vez de Google: não depende de credenciais OAuth e evita senha fraca. Google pode entrar depois.

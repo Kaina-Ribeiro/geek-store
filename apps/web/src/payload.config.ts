@@ -1,5 +1,4 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
-import { sqliteAdapter } from '@payloadcms/db-sqlite'
 import { resendAdapter } from '@payloadcms/email-resend'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { s3Storage } from '@payloadcms/storage-s3'
@@ -25,16 +24,16 @@ const dirname = path.dirname(filename)
 const DATABASE_URL = process.env.DATABASE_URL || ''
 const FROM = process.env.EMAIL_FROM || 'pedidos@checkpointgeek.com.br'
 
-// Database: SQLite file in development, Postgres (Neon) when DATABASE_URL is a
-// postgres:// URL. Same schema; on Postgres the migrations in src/migrations run
-// automatically when the production server starts (prodMigrations).
-const db = /^postgres(ql)?:\/\//.test(DATABASE_URL)
-  ? postgresAdapter({
-      pool: { connectionString: DATABASE_URL },
-      migrationDir: path.resolve(dirname, 'migrations'),
-      prodMigrations: migrations,
-    })
-  : sqliteAdapter({ client: { url: DATABASE_URL }, migrationDir: path.resolve(dirname, 'migrations-sqlite') })
+// Database: Postgres everywhere (Docker in development, Neon in production).
+// The schema only changes through the migrations in src/migrations, so dev
+// runs exactly what production runs; they apply on `pnpm db:migrate` locally
+// and automatically when the production server starts (prodMigrations).
+const db = postgresAdapter({
+  pool: { connectionString: DATABASE_URL },
+  push: false,
+  migrationDir: path.resolve(dirname, 'migrations'),
+  prodMigrations: migrations,
+})
 
 // E-mail: Resend when RESEND_API_KEY is set; otherwise print to the server log
 // (subject, recipient and every link), so flows are testable locally.

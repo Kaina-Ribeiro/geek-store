@@ -1,11 +1,11 @@
 import 'server-only'
 
-import { and, eq, gte, sql } from '@payloadcms/db-sqlite/drizzle'
+import { and, eq, gte, sql } from '@payloadcms/db-postgres/drizzle'
 import type { Payload } from 'payload'
 
 // Stock moves are single conditional UPDATEs ("stock = stock - n WHERE stock
-// >= n"), so two buyers can never take the same unique used copy, on SQLite
-// or Postgres alike. They bypass Payload hooks on purpose (nothing to run).
+// >= n"), so two buyers can never take the same unique used copy. They bypass
+// Payload hooks on purpose (nothing to run).
 
 type DrizzleDb = {
   drizzle: {

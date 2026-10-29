@@ -13,7 +13,7 @@ apps/web/              Next.js 16 + Payload 3: loja em /, painel em /admin
                        auth (link mágico), emails, xp, drops, data (consultas da loja)
   src/app/(frontend)/  páginas da loja, server actions (actions.ts) e webhooks
   src/components/      seções da Home, checkout, pedido, conta, cards, inventário
-  src/migrations/      migrações do Postgres (produção)
+  src/migrations/      migrações do Postgres
   src/seed/            17 jogos reais com capas para desenvolvimento
   tests/               unitários (Vitest) e ponta a ponta (Playwright)
 packages/ui/           design system: tokens, ProductCard, TrustChips, ícones
@@ -22,7 +22,7 @@ prototipo/             protótipos HTML antigos (referência)
 
 ## Rodar local
 
-Requisitos: Node 24.22+ e pnpm 10+.
+Requisitos: Node 24.22+, pnpm 10+ e Docker (para o Postgres local).
 
 ```bash
 pnpm install
@@ -38,7 +38,17 @@ Gere um `PAYLOAD_SECRET` e cole no `.env`:
 node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
 ```
 
-Popule o banco local (SQLite em `apps/web/checkpoint.db`):
+Suba o Postgres local (porta 5434, dados guardados num volume do Docker) e crie as tabelas:
+
+```bash
+pnpm db:up
+```
+
+```bash
+pnpm db:migrate
+```
+
+Popule o banco:
 
 ```bash
 pnpm seed
@@ -52,6 +62,20 @@ pnpm dev
 
 - Loja: http://localhost:3100 (ajuste `NEXT_PUBLIC_SITE_URL` se usar outra porta)
 - Painel: http://localhost:3100/admin
+
+## Banco de dados
+
+Postgres no desenvolvimento e em produção. O schema só muda por migração: depois de alterar uma coleção, gere a migração e aplique no banco local.
+
+```bash
+pnpm --filter web payload migrate:create nome-da-mudanca
+```
+
+```bash
+pnpm db:migrate
+```
+
+Para parar o Postgres local, `pnpm db:down` (os dados continuam no volume).
 
 ## Modo de simulação
 
@@ -105,7 +129,7 @@ Para testar o drop de sexta, `src/scripts/dev-drop.ts` muda o horário do drop e
 
 ## Produção
 
-1. **Banco:** crie um Postgres (Neon) e use a URL `postgres://...` em `DATABASE_URL`. As migrações de `src/migrations` rodam sozinhas quando o servidor sobe. Ao mudar coleções, gere uma nova com `pnpm --filter web payload migrate:create nome`.
+1. **Banco:** crie um Postgres 17 (Neon) e use a URL `postgres://...` em `DATABASE_URL`. As migrações de `src/migrations` rodam sozinhas quando o servidor sobe.
 2. **Fotos:** bucket no Cloudflare R2 e as variáveis `S3_*`.
 3. **Vercel:** projeto com raiz em `apps/web`. O `vercel.json` agenda `/webhooks/cron` a cada 5 minutos (plano Pro). Defina `CRON_SECRET`.
 4. **Mercado Pago:** `MP_ACCESS_TOKEN`, `NEXT_PUBLIC_MP_PUBLIC_KEY` e, em Webhooks, a URL `https://<domínio>/webhooks/mercadopago` com o evento Pagamentos. Copie a assinatura secreta para `MP_WEBHOOK_SECRET`. Teste antes com as credenciais `TEST-`.

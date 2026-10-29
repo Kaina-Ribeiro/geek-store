@@ -4,6 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "turbo run dev",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter web db:migrate",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
