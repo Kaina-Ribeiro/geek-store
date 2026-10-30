@@ -9,7 +9,7 @@ const CHIPS: { glyph: PixelGlyph; color: string; shadow: string; title: string; 
 
 export function TrustChips({ className = '' }: { className?: string }) {
   return (
-    <ul className={`trust-row ${className}`} aria-label="Por que comprar aqui" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+    <ul className={`trust-row ${className}`} aria-label="Por que comprar aqui">
       {CHIPS.map((c, i) => (
         <li key={c.title} className="trust glass">
           <span

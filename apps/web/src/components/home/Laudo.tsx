@@ -11,10 +11,10 @@ const STEPS = [
 ] as const
 
 const READS = [
-  { label: 'Leitura', value: 'BOOT OK · 100%', pos: { left: -30, top: 60 } },
-  { label: 'Superfície', value: '2 RISCOS LEVES', pos: { right: -30, top: 150 }, hi: true },
-  { label: 'Capa / manual', value: 'ORIGINAL · SIM', pos: { left: -16, bottom: 110 } },
-  { label: 'Embalagem', value: 'AGUARDANDO', pos: { right: -16, bottom: 40 }, mute: true },
+  { label: 'Leitura', value: 'BOOT OK · 100%', n: 1 },
+  { label: 'Superfície', value: '2 RISCOS LEVES', n: 2, hi: true },
+  { label: 'Capa / manual', value: 'ORIGINAL · SIM', n: 3 },
+  { label: 'Embalagem', value: 'AGUARDANDO', n: 4, mute: true },
 ]
 
 export function Laudo() {
@@ -53,7 +53,7 @@ export function Laudo() {
             <i className="corner bl" />
             <i className="corner br" />
             {READS.map((r) => (
-              <div key={r.label} className={`read${r.hi ? ' is-hi' : ''}`} style={r.pos}>
+              <div key={r.label} className={`read read-${r.n}${r.hi ? ' is-hi' : ''}`}>
                 <small className="px">{r.label}</small>
                 <b className="mono" style={r.mute ? { color: 'var(--mute)' } : undefined}>
                   {r.value}

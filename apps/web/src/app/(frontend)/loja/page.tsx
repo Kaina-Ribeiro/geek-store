@@ -3,6 +3,7 @@ import Link from 'next/link'
 
 import { SearchIcon, TrustChips } from '@checkpoint/ui'
 
+import { SegPill } from '../../../components/SegPill'
 import { ShopCard } from '../../../components/ShopCard'
 import { SiteFooter } from '../../../components/SiteFooter'
 import { SiteHeader } from '../../../components/SiteHeader'
@@ -68,6 +69,7 @@ export default async function LojaPage({ searchParams }: { searchParams: SP }) {
         <div className="wrap shop-body">
           <nav className="toolbar glass shop-toolbar" aria-label="Filtros">
             <div className="seg" aria-label="Plataforma">
+              <SegPill />
               <Link href={href({ grupo: undefined, plataforma: undefined })} aria-current={!f.grupo && !f.plataforma}>
                 Todos<b className="mono seg-n">{shop.total}</b>
               </Link>
@@ -79,6 +81,7 @@ export default async function LojaPage({ searchParams }: { searchParams: SP }) {
               ))}
             </div>
             <div className="seg" aria-label="Ordenar">
+              <SegPill />
               {SORTS.map((s) => (
                 <Link
                   key={s.value}

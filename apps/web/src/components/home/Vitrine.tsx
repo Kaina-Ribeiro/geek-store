@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react'
 
 import { PLATFORM_GROUPS, type PlatformGroup } from '../../lib/catalog'
 import type { CardItem, Img } from '../../lib/data'
+import { SegPill } from '../SegPill'
 import { ShopCard } from '../ShopCard'
 
 const SORTS = ['Destaques', 'Menor preço', 'Maior preço', 'Lacrados'] as const
@@ -66,6 +67,7 @@ export function Vitrine({
 
         <div className="toolbar glass">
           <div className="seg" role="group" aria-label="Filtrar por plataforma">
+            <SegPill />
             {(['Todos', ...PLATFORM_GROUPS] as const).map((g) => (
               <button key={g} aria-pressed={tab === g} onClick={() => setTab(g)}>
                 {g}
@@ -76,6 +78,7 @@ export function Vitrine({
           <div className="vit-sort">
             <b className="px">Ordenar por</b>
             <div className="seg" role="group" aria-label="Ordenar">
+              <SegPill />
               {SORTS.map((s) => (
                 <button key={s} aria-pressed={sort === s} onClick={() => setSort(s)}>
                   {s}
