@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { unstable_cache } from 'next/cache'
 import type { Where } from 'payload'
 import { cache } from 'react'
 
@@ -146,7 +147,7 @@ export type DropView = {
   teasers: { name: string; detail: string }[]
 }
 
-export const getHome = cache(async () => {
+const loadHome = async () => {
   const p = await payload()
   const items = await allCopies()
   const unique = onePerGame(items)
@@ -207,7 +208,13 @@ export const getHome = cache(async () => {
     strip: unique.map((i) => i.cover),
     retroMini: unique.filter((i) => i.group === 'Retrô').slice(0, 3).map((i) => i.cover),
   }
-})
+}
+
+// The Home renders per request (so builds never need the database) but reads
+// the catalog at most once a minute. revalidatePath('/') also clears it.
+export const getHome = unstable_cache(loadHome, ['home'], { revalidate: 60 })
+// Fresh read for pages where the drop opening must be exact to the second.
+export const getHomeFresh = cache(loadHome)
 
 // In-stock copies of a drop (ignores the drop lock: callers decide).
 export async function dropCards(d: Drop) {

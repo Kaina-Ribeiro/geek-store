@@ -6,7 +6,7 @@ import { ShopCard } from '../../../components/ShopCard'
 import { SiteFooter } from '../../../components/SiteFooter'
 import { SiteHeader } from '../../../components/SiteHeader'
 import { getCustomer } from '../../../lib/auth'
-import { dropCards, getHome } from '../../../lib/data'
+import { dropCards, getHomeFresh } from '../../../lib/data'
 import { hasEarlyAccess, pendingDrops } from '../../../lib/drops'
 import { getClient } from '../../../lib/payload'
 import { levelOf } from '../../../lib/xp'
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic'
 
 export default async function DropPage() {
-  const [{ drop }, customer, locks] = await Promise.all([getHome(), getCustomer(), pendingDrops()])
+  const [{ drop }, customer, locks] = await Promise.all([getHomeFresh(), getCustomer(), pendingDrops()])
   if (!drop) {
     return (
       <>

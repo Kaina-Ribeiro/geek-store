@@ -10,8 +10,8 @@ import { SiteFooter } from '../../components/SiteFooter'
 import { SiteHeader } from '../../components/SiteHeader'
 import { getHome } from '../../lib/data'
 
-// Catalog changes through the admin; revalidate the Home every minute.
-export const revalidate = 60
+// Rendered per request; getHome caches the catalog for a minute.
+export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
   const home = await getHome()

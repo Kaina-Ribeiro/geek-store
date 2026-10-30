@@ -3,7 +3,8 @@ import type { MetadataRoute } from 'next'
 import { env } from '../../lib/env'
 import { getClient } from '../../lib/payload'
 
-export const revalidate = 3600
+// Built on request, so builds never need the database.
+export const dynamic = 'force-dynamic'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const payload = await getClient()
