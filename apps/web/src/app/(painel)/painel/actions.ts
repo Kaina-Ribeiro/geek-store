@@ -8,6 +8,7 @@ import { env } from '../../../lib/env'
 import type { GameDraft } from '../../../lib/painel/game-form'
 import { saveGame, type SaveGameResult } from '../../../lib/painel/game-store'
 import type { HeroDraft } from '../../../lib/painel/hero'
+import { moveOrder } from '../../../lib/painel/order-store'
 import { publishHero, searchGamesForHero, type PickGame, type PublishResult } from '../../../lib/painel/hero-store'
 import { saveImage, type SaveImageResult } from '../../../lib/painel/media'
 import { getStaffUser } from '../../../lib/painel/session'
@@ -83,4 +84,10 @@ export async function searchGamesAction(q: string): Promise<PickGame[]> {
 
 export async function saveGameAction(draft: GameDraft): Promise<SaveGameResult> {
   return saveGame(await getClient(), await getStaffUser(), draft)
+}
+
+// ------------------------------------------------------------------ pedidos
+
+export async function moveOrderAction(id: number, from: string, trackingCode?: string) {
+  return moveOrder(await getClient(), await getStaffUser(), id, from, trackingCode)
 }

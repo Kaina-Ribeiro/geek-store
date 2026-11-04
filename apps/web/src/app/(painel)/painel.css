@@ -325,6 +325,19 @@ select.pn-inp { appearance: none; background: #fff url("data:image/svg+xml,%3Csv
 .pn-game-txt .mono { font-size: 14px; color: var(--pn-mute); margin-top: 2px; }
 .pn-empty { display: grid; gap: 10px; justify-items: start; }
 
+/* ---------- orders ---------- */
+.pn-orders { max-width: 980px; }
+.pn-ord-list { display: grid; gap: 10px; }
+.pn-ord { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 18px; padding: 18px 18px 18px 22px; border-radius: 22px; background: #fff; box-shadow: 0 1px 0 rgba(0, 0, 0, .04), 0 20px 40px -32px rgba(20, 20, 22, .3); }
+.pn-ord-txt { display: grid; gap: 4px; min-width: 0; }
+.pn-ord-txt > span { display: flex; gap: 10px; align-items: baseline; font-size: 15px; color: var(--pn-mute); }
+.pn-ord-txt .mono { color: var(--pn-fg); font-weight: 600; }
+.pn-ord-items { font-size: 18px; overflow-wrap: anywhere; }
+.pn-stchip { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 10px; font-weight: 600; font-size: 14px; white-space: nowrap; }
+.pn-done { color: #178a39; cursor: default; }
+.pn-done:hover { transform: none; }
+.pn-ord-sheet { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; padding: 16px; border-radius: 16px; background: var(--pn-bg); animation: pn-in .35s var(--ease-out); }
+
 /* ---------- login ---------- */
 .pn-login { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
 .pn-login-main { display: grid; place-items: center; padding: 40px 16px; }
@@ -404,6 +417,9 @@ select.pn-inp { appearance: none; background: #fff url("data:image/svg+xml,%3Csv
   .pn-gpv-card { width: 160px; }
   .pn-gpv-pdp .dsp { font-size: 30px; }
   .pn-row-card { align-items: flex-start; }
+  .pn-ord { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 16px; }
+  .pn-ord .pn-stchip { justify-self: start; white-space: normal; height: auto; min-height: 34px; padding: 6px 12px; }
+  .pn-ord > .pn-btn { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

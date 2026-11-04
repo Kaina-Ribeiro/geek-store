@@ -162,4 +162,59 @@ try {
   await payload.updateGlobal({ slug: 'home-hero', data: { slides: heroBefore.slides }, overrideAccess: true })
 }
 
+// ---------------------------------------------------------------- Pedidos
+console.log('Pedidos')
+const { moveOrder, listOrdersForPanel } = await import('../lib/painel/order-store')
+const orders = await import('../lib/orders')
+const sent: string[] = []
+const realSend = payload.sendEmail.bind(payload)
+payload.sendEmail = (async (m: { subject?: string }) => {
+  sent.push(String(m.subject))
+  return realSend(m as never)
+}) as typeof payload.sendEmail
+const forSale = await payload.find({ collection: 'copies', where: { and: [{ active: { equals: true } }, { stock: { greater_than: 1 } }] }, depth: 0, limit: 1, overrideAccess: true })
+const copy = forSale.docs[0]
+assert(copy, 'seed precisa de uma cópia com estoque 2+')
+const placed = await orders.placeOrder(
+  {
+    lines: [{ copyId: copy.id, qty: 1 }],
+    method: 'pix',
+    shipId: 'pac',
+    name: 'Cliente Painel',
+    email: 'cliente.painel@example.com',
+    phone: '',
+    // Example CPF from the check-digit algorithm (not a real person's document).
+    cpf: '111.444.777-35',
+    address: { cep: '12010-000', street: 'Rua Teste', number: '10', complement: '', district: 'Centro', city: 'Taubaté', uf: 'SP' },
+    newsletter: false,
+  },
+  null,
+)
+assert(placed.ok, JSON.stringify(placed))
+await orders.simulate(placed.id, placed.token, 'approved')
+const stockPaid = (await payload.findByID({ collection: 'copies', id: copy.id, depth: 0, overrideAccess: true })).stock
+const listed = await listOrdersForPanel(payload, equipe)
+const row = listed.find((o) => o.id === placed.id)
+assert(row && row.move?.label === 'Já enviei', JSON.stringify(row))
+log('pedido pago de envio aparece com o botão "Já enviei"')
+
+const m1 = await moveOrder(payload, equipe, placed.id, 'pago', '  BR123  ')
+assert(m1.ok, JSON.stringify(m1))
+const moved = await payload.findByID({ collection: 'orders', id: placed.id, depth: 0, overrideAccess: true })
+assert.equal(moved.status, 'enviado')
+assert.equal(moved.trackingCode, 'BR123')
+assert(sent.some((s) => s.includes('a caminho')), `e-mail "a caminho": ${sent.join(' | ')}`)
+log('Já enviei → enviado, rastreio BR123 e e-mail "a caminho"')
+
+const m2 = await moveOrder(payload, equipe, placed.id, 'pago', 'BR999')
+assert(!m2.ok && m2.error === 'Esse pedido já mudou. Atualize a página.')
+log('clique duplo: "Esse pedido já mudou"')
+
+assert.equal((await payload.findByID({ collection: 'copies', id: copy.id, depth: 0, overrideAccess: true })).stock, stockPaid)
+log('estoque não muda com o envio')
+
+const m3 = await moveOrder(payload, null, placed.id, 'enviado')
+assert(!m3.ok)
+log('visitante não mexe em pedido')
+
 process.exit(0)
