@@ -1,14 +1,14 @@
-import 'server-only'
-
 import { and, eq, gte, sql } from '@payloadcms/db-postgres/drizzle'
 import type { Payload } from 'payload'
 
 // Stock moves are single conditional UPDATEs ("stock = stock - n WHERE stock
 // >= n"), so two buyers can never take the same unique used copy. They bypass
-// Payload hooks on purpose (nothing to run).
+// Payload hooks on purpose (nothing to run). No 'server-only' here: the
+// Orders collection uses these and the Payload CLI loads collections outside Next.
 
-type DrizzleDb = {
+export type DrizzleDb = {
   drizzle: {
+    execute: (q: unknown) => Promise<{ rows: Record<string, unknown>[] }>
     update: (t: unknown) => {
       set: (v: Record<string, unknown>) => {
         where: (w: unknown) => { returning: (r: Record<string, unknown>) => Promise<unknown[]> }
@@ -18,7 +18,7 @@ type DrizzleDb = {
   tables: Record<string, Record<string, never>>
 }
 
-const db = (payload: Payload) => payload.db as unknown as DrizzleDb
+export const db = (payload: Payload) => payload.db as unknown as DrizzleDb
 
 export async function takeStock(payload: Payload, copyId: number, qty: number) {
   const { drizzle, tables } = db(payload)

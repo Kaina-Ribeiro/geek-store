@@ -27,7 +27,10 @@ export const Customers: CollectionConfig = {
     read: ({ req }) => (isStaff(req.user) ? true : req.user ? { id: { equals: req.user.id } } : false),
     // Accounts are created by the server when someone asks for a login link.
     create: staffOnly,
-    update: ({ req }) => (isStaff(req.user) ? true : req.user ? { id: { equals: req.user.id } } : false),
+    // Customers change their data only through the store's server actions
+    // (name, phone, save slots). Open REST/GraphQL updates would let them
+    // switch their e-mail to someone else's and receive that person's orders.
+    update: staffOnly,
     delete: donoOnly,
     admin: () => false,
   },

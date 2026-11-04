@@ -33,6 +33,7 @@ export function OrderLive({
   const [now, setNow] = useState<number | null>(null)
   const [copied, setCopied] = useState(false)
   const [busy, start] = useTransition()
+  const [simError, setSimError] = useState<string | null>(null)
   const tracked = useRef(false)
 
   const waiting = o.status === 'aguardando'
@@ -66,7 +67,8 @@ export function OrderLive({
   const left = o.payment.expiresAt && now !== null ? new Date(o.payment.expiresAt).getTime() - now : null
   const sim = (outcome: 'approved' | 'rejected' | 'expired') =>
     start(async () => {
-      await simulateAction(o.id, token, outcome)
+      const r = await simulateAction(o.id, token, outcome)
+      setSimError(r.ok ? null : r.error)
       await refresh()
     })
 
@@ -188,6 +190,11 @@ export function OrderLive({
                 Simular expiração
               </button>
             </div>
+            {simError && (
+              <p className="co-error" role="alert">
+                {simError}
+              </p>
+            )}
           </section>
         )}
 

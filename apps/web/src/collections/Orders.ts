@@ -1,8 +1,9 @@
-import type { CollectionConfig } from 'payload'
+import { APIError, type CollectionConfig } from 'payload'
 
 import { donoField, donoOnly, isStaff, staffOnly } from '../access/roles'
 import { orderNumber } from '../lib/checkout-math'
-import { sendShippedEmail } from '../lib/emails'
+import { sendPaidEmail, sendShippedEmail } from '../lib/emails'
+import { claimStockBack, claimStockOut, creditXpOnce, giveBackStock, retakeStock, revertXpOnce } from '../lib/order-moves'
 
 export const ORDER_STATUS = [
   { value: 'aguardando', label: 'Aguardando pagamento' },
@@ -15,6 +16,13 @@ export const ORDER_STATUS = [
 ] as const
 
 export type OrderStatus = (typeof ORDER_STATUS)[number]['value']
+
+// Context flag for updates made by lib/orders.ts, which applies stock and XP
+// itself: the panel hooks below skip them.
+export const ORDER_MOVE = { orderMove: true }
+
+const PENDING: (string | null | undefined)[] = ['aguardando', 'expirado']
+const HOLDS_STOCK: (string | null | undefined)[] = ['aguardando', 'pago']
 
 // Orders are created only by the server (checkout action); prices are locked
 // per item at that moment. The team works them from here: separate, ship,
@@ -41,17 +49,55 @@ export const Orders: CollectionConfig = {
   },
   defaultSort: '-createdAt',
   hooks: {
+    // Marking an order "pago" by hand: its copies must still be on the shelf
+    // if they had gone back. Checked before saving so the team gets an error.
+    beforeChange: [
+      async ({ data, originalDoc, operation, req, context }) => {
+        if (operation !== 'update' || context.orderMove || !originalDoc) return data
+        if (data.status !== 'pago' || !PENDING.includes(originalDoc.status)) return data
+        if (originalDoc.stockReleased && (await claimStockOut(req.payload, originalDoc.id, req))) {
+          if (!(await retakeStock(req.payload, originalDoc))) {
+            await claimStockBack(req.payload, originalDoc.id, req)
+            throw new APIError('Uma das cópias deste pedido já foi vendida de novo: não dá para marcar como pago.', 400)
+          }
+        }
+        return { ...data, stockReleased: false }
+      },
+    ],
     afterChange: [
-      async ({ doc, previousDoc, operation, req }) => {
+      async ({ doc, previousDoc, operation, req, context }) => {
         // Human-friendly number (#1042) derived from the id.
         if (operation === 'create' && !doc.number) {
           const number = orderNumber(doc.id)
           await req.payload.update({ collection: 'orders', id: doc.id, data: { number }, req, overrideAccess: true })
           return { ...doc, number }
         }
-        if (operation !== 'update') return doc
-        if (doc.status !== previousDoc?.status && (doc.status === 'enviado' || doc.status === 'pronto')) {
+        if (operation !== 'update' || doc.status === previousDoc?.status) return doc
+        if (doc.status === 'enviado' || doc.status === 'pronto') {
           await sendShippedEmail(req.payload, doc, req).catch((e) => req.payload.logger.error(e))
+        }
+        if (context.orderMove) return doc
+        // Status changed by hand in the panel: apply what checkout, webhook and
+        // cron would. Cancelling a pending or paid order puts its copies back
+        // (shipped ones the team restocks by hand) and takes the XP back.
+        if (doc.status === 'cancelado' || doc.status === 'expirado') {
+          if (HOLDS_STOCK.includes(previousDoc?.status) && (await claimStockBack(req.payload, doc.id, req))) {
+            await giveBackStock(req.payload, doc)
+          }
+          await revertXpOnce(req.payload, doc.id, req)
+        }
+        if (doc.status === 'pago' && PENDING.includes(previousDoc?.status)) {
+          const paid = await req.payload.update({
+            collection: 'orders',
+            id: doc.id,
+            data: { payment: { ...doc.payment, paidAt: new Date().toISOString() } },
+            req,
+            context: ORDER_MOVE,
+            overrideAccess: true,
+          })
+          await creditXpOnce(req.payload, doc.id, req)
+          await sendPaidEmail(req.payload, paid).catch((e) => req.payload.logger.error(e))
+          return paid
         }
         return doc
       },

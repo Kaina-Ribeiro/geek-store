@@ -4,6 +4,7 @@ import { randomBytes, timingSafeEqual } from 'crypto'
 import { revalidatePath } from 'next/cache'
 import QRCode from 'qrcode'
 
+import { ORDER_MOVE, type OrderStatus } from '../collections/Orders'
 import type { Copy, Customer, Game, Media, Order } from '../payload-types'
 import { conditionOf, platformOf } from './catalog'
 import {
@@ -30,6 +31,7 @@ import {
 } from './mercadopago'
 import { getClient } from './payload'
 import { quoteShipping } from './shipping'
+import { claimPaid, claimRelease, creditXpOnce, giveBackStock, retakeStock, revertXpOnce } from './order-moves'
 import { returnStock, takeStock } from './stock'
 
 export type CheckoutInput = {
@@ -292,9 +294,10 @@ async function startPix(order: Order, name: string): Promise<{ ok: true } | Fail
 
 // ---------------------------------------------------------------- card
 
-export async function payOrderWithCard(id: number, token: string, form: CardFormData) {
+// The account owner may pay without the secret link (orders opened from /conta).
+export async function payOrderWithCard(id: number, token: string, form: CardFormData, customer: Customer | null = null) {
   const payload = await getClient()
-  const order = await authorizedOrder(id, token)
+  const order = await authorizedOrder(id, token, customer)
   if (!order) return fail('Pedido não encontrado.')
   if (order.status !== 'aguardando' || order.payment?.method !== 'card') return fail('Esse pedido não aceita pagamento agora.')
   if (!payments.cardLive) return fail('Pagamento com cartão não configurado.')
@@ -354,40 +357,35 @@ export async function applyPayment(orderId: number, p: MpPayment) {
 
 export async function markPaid(orderId: number, opts: { simulated?: boolean } = {}) {
   const payload = await getClient()
+  const claim = await claimPaid(payload, orderId)
+  if (!claim) return
   const order = await payload.findByID({ collection: 'orders', id: orderId, overrideAccess: true, depth: 0 })
-  if (order.status !== 'aguardando' && order.status !== 'expirado') return
 
   // Paid after expiring: take the stock back if it is still there, otherwise
   // refund automatically and tell the store.
-  if (order.stockReleased) {
-    const taken: { id: number; qty: number }[] = []
-    for (const i of order.items) {
-      const id = typeof i.copy === 'number' ? i.copy : i.copy.id
-      if (await takeStock(payload, id, i.qty)) taken.push({ id, qty: i.qty })
-      else {
-        for (const t of taken) await returnStock(payload, t.id, t.qty)
-        if (payments.live && order.payment?.mpId) await refundPayment(order.payment.mpId).catch((e) => payload.logger.error(e))
-        await payload.update({
-          collection: 'orders',
-          id: orderId,
-          overrideAccess: true,
-          data: {
-            status: 'cancelado',
-            payment: { ...order.payment, statusDetail: 'Pago depois de expirar e o item já tinha saído: estornado' },
-          },
-        })
-        return
-      }
-    }
+  if (claim === 'retake' && !(await retakeStock(payload, order))) {
+    if (payments.live && order.payment?.mpId) await refundPayment(order.payment.mpId).catch((e) => payload.logger.error(e))
+    await payload.update({
+      collection: 'orders',
+      id: orderId,
+      overrideAccess: true,
+      context: ORDER_MOVE,
+      data: {
+        status: 'cancelado',
+        stockReleased: true,
+        payment: { ...order.payment, statusDetail: 'Pago depois de expirar e o item já tinha saído: estornado' },
+      },
+    })
+    refresh()
+    return
   }
 
   const paid = await payload.update({
     collection: 'orders',
     id: orderId,
     overrideAccess: true,
+    context: ORDER_MOVE,
     data: {
-      status: 'pago',
-      stockReleased: false,
       payment: {
         ...order.payment,
         status: 'approved',
@@ -401,39 +399,28 @@ export async function markPaid(orderId: number, opts: { simulated?: boolean } = 
   refresh()
 }
 
+// Which states each release may start from: an order expires only while it
+// waits for payment; it is cancelled (refund, chargeback) while pending or paid.
+const RELEASE_FROM: Record<'expirado' | 'cancelado', OrderStatus[]> = {
+  expirado: ['aguardando'],
+  cancelado: ['aguardando', 'pago'],
+}
+
 export async function releaseOrder(orderId: number, status: 'expirado' | 'cancelado') {
   const payload = await getClient()
-  const order = await payload.findByID({ collection: 'orders', id: orderId, overrideAccess: true, depth: 0 })
-  if (!order.stockReleased) {
-    for (const i of order.items) await returnStock(payload, typeof i.copy === 'number' ? i.copy : i.copy.id, i.qty)
+  const claim = await claimRelease(payload, orderId, status, RELEASE_FROM[status])
+  if (!claim) return false
+  if (claim === 'released') {
+    const order = await payload.findByID({ collection: 'orders', id: orderId, overrideAccess: true, depth: 0 })
+    await giveBackStock(payload, order)
   }
-  if (order.xpCredited && order.customer) {
-    const cid = typeof order.customer === 'number' ? order.customer : order.customer.id
-    const c = await payload.findByID({ collection: 'customers', id: cid, overrideAccess: true, depth: 0 })
-    await payload.update({
-      collection: 'customers',
-      id: cid,
-      overrideAccess: true,
-      data: { xp: Math.max(0, (c.xp ?? 0) - (order.xp ?? 0)) },
-    })
-  }
-  await payload.update({
-    collection: 'orders',
-    id: orderId,
-    overrideAccess: true,
-    data: { status, stockReleased: true, xpCredited: false },
-  })
+  await revertXpOnce(payload, orderId)
   refresh()
+  return true
 }
 
 export async function creditXp(orderId: number) {
-  const payload = await getClient()
-  const order = await payload.findByID({ collection: 'orders', id: orderId, overrideAccess: true, depth: 0 })
-  if (order.xpCredited || !order.customer || !order.xp) return
-  const cid = typeof order.customer === 'number' ? order.customer : order.customer.id
-  const c = await payload.findByID({ collection: 'customers', id: cid, overrideAccess: true, depth: 0 })
-  await payload.update({ collection: 'customers', id: cid, overrideAccess: true, data: { xp: (c.xp ?? 0) + order.xp } })
-  await payload.update({ collection: 'orders', id: orderId, overrideAccess: true, data: { xpCredited: true } })
+  return creditXpOnce(await getClient(), orderId)
 }
 
 // Unpaid orders give their copies back after the Pix window (+2 min margin
@@ -500,9 +487,14 @@ export async function refreshOrder(order: Order) {
   return now
 }
 
-export async function simulate(id: number, token: string, outcome: 'approved' | 'rejected' | 'expired') {
+export async function simulate(
+  id: number,
+  token: string,
+  outcome: 'approved' | 'rejected' | 'expired',
+  customer: Customer | null = null,
+) {
   if (!simulationEnabled) return fail('Simulação desativada.')
-  const order = await authorizedOrder(id, token)
+  const order = await authorizedOrder(id, token, customer)
   if (!order || order.status !== 'aguardando') return fail('Esse pedido não está aguardando pagamento.')
   const payload = await getClient()
   if (outcome === 'approved') await markPaid(id, { simulated: true })

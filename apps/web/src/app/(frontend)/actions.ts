@@ -43,12 +43,12 @@ export async function orderStatusAction(id: number, token: string) {
 }
 
 export async function payCardAction(id: number, token: string, form: CardFormData) {
-  return payOrderWithCard(Number(id), String(token || ''), form)
+  return payOrderWithCard(Number(id), String(token || ''), form, await getCustomer())
 }
 
 export async function simulateAction(id: number, token: string, outcome: 'approved' | 'rejected' | 'expired') {
   if (!['approved', 'rejected', 'expired'].includes(outcome)) return { ok: false as const, error: 'Opção inválida.' }
-  return simulate(Number(id), String(token || ''), outcome)
+  return simulate(Number(id), String(token || ''), outcome, await getCustomer())
 }
 
 export async function loginLinkAction(email: string, next?: string) {
