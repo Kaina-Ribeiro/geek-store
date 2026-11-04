@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { logoutAction } from '../../app/(painel)/painel/actions'
+import { firstName } from '../../lib/painel/text'
 import { BannerIcon, BoxIcon, ChatIcon, ExternalIcon, HomeIcon, LogoutIcon, PadIcon } from './icons'
 
 const NAV = [
@@ -15,7 +16,6 @@ const NAV = [
   { href: '/painel/pedidos', label: 'Pedidos', short: 'Pedidos', Icon: BoxIcon },
 ] as const
 
-export const firstName = (name: string) => name.trim().split(/\s+/)[0] || 'Mestre'
 
 export function HelpCard({ url, className = 'pn-help' }: { url: string; className?: string }) {
   return (

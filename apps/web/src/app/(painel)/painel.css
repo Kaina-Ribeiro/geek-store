@@ -70,6 +70,28 @@
 .pn-lead { margin: 0; font-size: 17px; color: var(--pn-mute); line-height: 1.45; }
 .pn-head-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
 
+/* ---------- start screen ---------- */
+.pn-hello { gap: 10px; padding-top: 8px; }
+.pn-h1-xl { font-size: 84px; }
+.pn-bigs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+.pn-big {
+  display: grid; gap: 18px; align-content: start; padding: 28px; border-radius: 28px; background: var(--pn-card); min-height: 280px;
+  text-decoration: none; color: var(--pn-fg);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .04), 0 24px 48px -32px rgba(20, 20, 22, .35);
+  transition: transform .45s var(--ease), box-shadow .45s;
+}
+.pn-big:hover { transform: translateY(-6px); box-shadow: 0 1px 0 rgba(0, 0, 0, .04), 0 40px 60px -34px rgba(20, 20, 22, .5); }
+.pn-big:active { transform: scale(.98); }
+.pn-big > b { font-size: 38px; font-stretch: 88%; letter-spacing: -.04em; line-height: .88; }
+.pn-big-txt { font-size: 15.5px; color: var(--pn-mute); line-height: 1.45; }
+.pn-tile { width: 68px; height: 68px; border-radius: 20px; display: grid; place-items: center; }
+.pn-go { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; margin-top: auto; transition: gap .3s var(--ease); }
+.pn-big:hover .pn-go { gap: 14px; }
+.pn-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; }
+.pn-stats > div { display: grid; gap: 6px; }
+.pn-stats .px { color: var(--pn-mute); }
+.pn-stats b { font-size: 40px; font-weight: 500; }
+
 /* ---------- shared pieces ---------- */
 .pn-card { background: var(--pn-card); border-radius: 24px; padding: 24px; box-shadow: 0 1px 0 rgba(0, 0, 0, .04), 0 20px 40px -32px rgba(20, 20, 22, .3); }
 .pn-step { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 18px; margin: 0; }
@@ -182,7 +204,14 @@ select.pn-inp { appearance: none; background: #fff url("data:image/svg+xml,%3Csv
   .pn-side { display: none; }
   .pn-help-mobile { display: grid; }
   .pn-h1 { font-size: 40px; }
+  .pn-h1-xl { font-size: 52px; }
   .pn-lead { font-size: 15.5px; }
+  .pn-big { min-height: 0; padding: 22px; border-radius: 24px; gap: 14px; }
+  .pn-big > b { font-size: 30px; }
+  .pn-tile { width: 56px; height: 56px; border-radius: 16px; }
+  .pn-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .pn-stats b { font-size: 30px; }
+  .pn-stats .px { font-size: 9.5px; }
   .pn-card { padding: 18px; border-radius: 20px; }
   .pn-tabs {
     position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 60; height: 70px; border-radius: 24px;
