@@ -4,15 +4,8 @@ import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
 
 import { anyone, donoOnly, staffOnly } from '../access/roles'
 import { PLATFORMS } from '../lib/catalog'
+import { slugify } from '../lib/painel/game-form'
 import { dominantGlow } from '../lib/painel/glow'
-
-const slugify = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
 
 // The glow behind the cover is computed from the cover itself when empty, so
 // the owner never has to pick a colour. Never blocks saving the game.

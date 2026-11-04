@@ -78,4 +78,88 @@ try {
   for (const id of mediaIds) await payload.delete({ collection: 'media', id, overrideAccess: true })
 }
 
+// ---------------------------------------------------------------- Jogos
+console.log('Jogos')
+const { saveGame, loadGameDraft, listGamesForPanel } = await import('../lib/painel/game-store')
+const heroBefore = await payload.findGlobal({ slug: 'home-hero', depth: 0, overrideAccess: true })
+const anyCover = (await payload.find({ collection: 'media', limit: 1, depth: 0, overrideAccess: true })).docs[0]
+assert(anyCover, 'seed precisa de imagens')
+const stamp = Date.now().toString(36)
+const title = `Smoke Painel ${stamp}`
+const gameIds: number[] = []
+const cleanupTitles = [title, `Smoke Rollback ${stamp}`]
+try {
+  const draft = {
+    title,
+    platform: 'ps2' as const,
+    coverId: anyCover.id,
+    year: '2005',
+    ageRating: '',
+    genre: '',
+    description: '',
+    showInHero: true,
+    copies: [
+      { condition: 'lacrado' as const, price: '99,90', stock: 2, active: true },
+      { condition: 'b' as const, price: '79,90', stock: 1, active: true },
+    ],
+  }
+  const g1 = await saveGame(payload, equipe, draft)
+  assert(g1.ok, JSON.stringify(g1))
+  gameIds.push(g1.id)
+  const copies = await payload.find({ collection: 'copies', where: { game: { equals: g1.id } }, depth: 0, overrideAccess: true, sort: 'createdAt' })
+  assert.equal(copies.totalDocs, 2)
+  assert.deepEqual(copies.docs.map((c) => [c.condition, c.price, c.stock]).sort(), [['b', 79.9, 1], ['lacrado', 99.9, 2]])
+  assert(copies.docs.find((c) => c.condition === 'b')?.laudo?.boot === true, 'Nota B ganha o laudo padrão')
+  const game = await payload.findByID({ collection: 'games', id: g1.id, depth: 0, overrideAccess: true })
+  assert.match(game.glow || '', /^#[0-9A-F]{6}$/, 'glow automático pela capa')
+  const hero1 = await payload.findGlobal({ slug: 'home-hero', depth: 0, overrideAccess: true })
+  assert((hero1.slides || []).some((s) => s.game === g1.id && s.visible), 'slide do jogo no banner')
+  log('cria jogo com 1 lacrado ×2 e 1 Nota B, glow automático e slide no banner')
+
+  const loaded = await loadGameDraft(payload, equipe, g1.id)
+  assert(loaded && loaded.draft.copies.length === 2 && loaded.draft.showInHero)
+  const keep = loaded.draft.copies.filter((c) => c.condition === 'lacrado')
+  const g2 = await saveGame(payload, equipe, { ...loaded.draft, copies: keep.map((c) => ({ ...c, price: '89,90' })), showInHero: false })
+  assert(g2.ok, JSON.stringify(g2))
+  const after = await payload.find({ collection: 'copies', where: { game: { equals: g1.id } }, depth: 0, overrideAccess: true })
+  assert.equal(after.totalDocs, 2, 'nenhuma cópia apagada')
+  assert.equal(after.docs.find((c) => c.condition === 'b')?.active, false)
+  assert.equal(after.docs.find((c) => c.condition === 'lacrado')?.price, 89.9)
+  const hero2 = await payload.findGlobal({ slug: 'home-hero', depth: 0, overrideAccess: true })
+  assert(!(hero2.slides || []).some((s) => s.game === g1.id), 'slide sai do banner')
+  log('cópia removida fica fora da loja (active: false), preço muda e o slide sai')
+
+  const dup = await saveGame(payload, equipe, { ...draft, showInHero: false })
+  assert(!dup.ok && dup.existingId === g1.id && dup.error === 'Esse jogo já existe no PS2. Abrir ele?', JSON.stringify(dup))
+  log('jogo repetido aponta para o existente')
+
+  const bad = await saveGame(payload, equipe, {
+    ...draft,
+    title: `Smoke Rollback ${stamp}`,
+    showInHero: true,
+    copies: [draft.copies[0], { condition: 'invalida' as never, price: '10', stock: 1, active: true }],
+  })
+  assert(!bad.ok)
+  const leftover = await payload.find({ collection: 'games', where: { title: { equals: `Smoke Rollback ${stamp}` } }, overrideAccess: true })
+  assert.equal(leftover.totalDocs, 0, 'jogo não fica no banco')
+  const heroBad = await payload.findGlobal({ slug: 'home-hero', depth: 0, overrideAccess: true })
+  assert.equal((heroBad.slides || []).length, (hero2.slides || []).length, 'banner não muda')
+  log('erro na 2ª cópia desfaz tudo (jogo, 1ª cópia e slide)')
+
+  const visitor = await saveGame(payload, null, { ...draft, title: `Smoke Visitante ${stamp}` })
+  assert(!visitor.ok)
+  log('visitante não grava')
+
+  const list = await listGamesForPanel(payload, equipe, title)
+  assert(list.length === 1 && list[0].state === 'ok' && list[0].minPrice === 89.9, JSON.stringify(list))
+  log('lista do painel acha o jogo pelo nome')
+} finally {
+  const extra = await payload.find({ collection: 'games', where: { title: { in: cleanupTitles } }, depth: 0, overrideAccess: true })
+  for (const id of new Set([...gameIds, ...extra.docs.map((g) => g.id)])) {
+    await payload.delete({ collection: 'copies', where: { game: { equals: id } }, overrideAccess: true })
+    await payload.delete({ collection: 'games', id, overrideAccess: true })
+  }
+  await payload.updateGlobal({ slug: 'home-hero', data: { slides: heroBefore.slides }, overrideAccess: true })
+}
+
 process.exit(0)

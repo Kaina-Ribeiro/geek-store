@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation'
 import { generatePayloadCookie } from 'payload'
 
 import { env } from '../../../lib/env'
+import type { GameDraft } from '../../../lib/painel/game-form'
+import { saveGame, type SaveGameResult } from '../../../lib/painel/game-store'
 import type { HeroDraft } from '../../../lib/painel/hero'
 import { publishHero, searchGamesForHero, type PickGame, type PublishResult } from '../../../lib/painel/hero-store'
 import { saveImage, type SaveImageResult } from '../../../lib/painel/media'
@@ -75,4 +77,10 @@ export async function searchGamesAction(q: string): Promise<PickGame[]> {
   const user = await getStaffUser()
   if (!user) return []
   return searchGamesForHero(await getClient(), user, q)
+}
+
+// ------------------------------------------------------------------ jogos
+
+export async function saveGameAction(draft: GameDraft): Promise<SaveGameResult> {
+  return saveGame(await getClient(), await getStaffUser(), draft)
 }

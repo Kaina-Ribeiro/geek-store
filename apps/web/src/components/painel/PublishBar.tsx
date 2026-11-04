@@ -37,7 +37,7 @@ export function PublishBar({
       <div className="pn-acts">
         {extra}
         <button type="button" className="pn-btn outline" onClick={onReset} disabled={busy}>
-          <UndoIcon />
+          {resetLabel === 'Voltar como estava' && <UndoIcon />}
           {resetLabel}
         </button>
         {status === 'published' ? (
