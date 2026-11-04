@@ -1,5 +1,6 @@
 // Pure logic for the home banner (Global "home-hero"). No server-only imports:
 // the panel's client components and the unit tests use it too.
+import type { Featured, Img } from '../data'
 
 export type HeroSlideInput = {
   kind: 'game' | 'campaign'
@@ -28,4 +29,47 @@ export function featuredToSlides(games: { id: number; updatedAt: string }[]): He
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, HERO_LIMITS.slides)
     .map((g) => ({ kind: 'game', game: g.id, visible: true }))
+}
+
+// Each line of the title is one line on the site (max 4, blank lines dropped).
+export const titleLines = (title: string): string[] =>
+  title
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, 4)
+
+// Only same-site paths ("/loja", "/drop"): never "//host", "/\host" or URLs.
+export const isInternalPath = (s: string | null | undefined): s is string =>
+  typeof s === 'string' && s.startsWith('/') && s[1] !== '/' && s[1] !== '\\' && !/\s/.test(s)
+
+export type HeroSlideView =
+  | { kind: 'game'; item: Featured }
+  | { kind: 'campaign'; title: string; image: Img | null; href: string }
+
+// What the home actually shows: visible slides only; a game that was deleted
+// or has nothing in stock is skipped; a bad link falls back to the shop.
+export function resolveHeroSlides(
+  slides: HeroSlideInput[],
+  featuredByGame: Map<number, Featured>,
+  imageById: Map<number, Img>,
+): HeroSlideView[] {
+  const out: HeroSlideView[] = []
+  for (const s of slides) {
+    if (!s.visible) continue
+    if (s.kind === 'game') {
+      const item = s.game != null ? featuredByGame.get(s.game) : undefined
+      if (item) out.push({ kind: 'game', item })
+      continue
+    }
+    const title = (s.campaignTitle || '').trim()
+    if (!title) continue
+    out.push({
+      kind: 'campaign',
+      title,
+      image: s.campaignImage != null ? (imageById.get(s.campaignImage) ?? null) : null,
+      href: isInternalPath(s.campaignLink) ? s.campaignLink : '/loja',
+    })
+  }
+  return out
 }

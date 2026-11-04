@@ -4,7 +4,7 @@ import { unstable_cache } from 'next/cache'
 import type { Where } from 'payload'
 import { cache } from 'react'
 
-import type { Copy, Drop, Game, Media } from '../payload-types'
+import type { Copy, Drop, Game, HomeHero, Media } from '../payload-types'
 import {
   brl,
   conditionOf,
@@ -17,6 +17,7 @@ import {
   type PlatformGroup,
 } from './catalog'
 import { lockedCopyIds } from './drops'
+import { HERO_DEFAULTS, resolveHeroSlides, type HeroSlideInput, type HeroSlideView } from './painel/hero'
 import { getClient } from './payload'
 
 export type Img = { url: string; width: number; height: number; alt: string }
@@ -147,18 +148,57 @@ export type DropView = {
   teasers: { name: string; detail: string }[]
 }
 
+// The best (cheapest) in-stock copy of each game, with its large cover: what a
+// game slide of the banner shows. Games with nothing in stock are left out.
+export function featuredByGame(games: Game[], items: CardItem[]): Map<number, Featured> {
+  const out = new Map<number, Featured>()
+  for (const g of games) {
+    const best = items.filter((i) => i.gameId === g.id).sort((a, b) => a.price - b.price)[0]
+    if (best) out.set(g.id, { ...best, large: img(g.cover, 'large') })
+  }
+  return out
+}
+
+export const heroImage = (m: number | Media | null | undefined) => img(m, 'large')
+
+export type HeroData = { title: string; subtitle: string; ctaLabel: string; slides: HeroSlideView[] }
+
+// The banner as published in the Global "home-hero".
+async function heroFor(p: Awaited<ReturnType<typeof payload>>, items: CardItem[]): Promise<HeroData> {
+  const g = await p.findGlobal({ slug: 'home-hero', depth: 2 })
+  const slides = toSlideInputs(g.slides)
+  const games = (g.slides || []).map((s) => s.game).filter((x): x is Game => Boolean(x) && typeof x === 'object')
+  const images = new Map<number, Img>()
+  for (const s of g.slides || []) {
+    if (s.campaignImage && typeof s.campaignImage === 'object') images.set(s.campaignImage.id, heroImage(s.campaignImage))
+  }
+  return {
+    title: g.title || HERO_DEFAULTS.title,
+    subtitle: g.subtitle ?? '',
+    ctaLabel: g.ctaLabel || HERO_DEFAULTS.ctaLabel,
+    slides: resolveHeroSlides(slides, featuredByGame(games, items), images),
+  }
+}
+
+const relId = (v: number | { id: number } | null | undefined) => (v == null ? null : typeof v === 'number' ? v : v.id)
+
+// Global rows → the plain shape the panel edits and resolveHeroSlides reads.
+export const toSlideInputs = (rows: HomeHero['slides']): HeroSlideInput[] =>
+  (rows || []).map((s) => ({
+    kind: s.kind,
+    game: relId(s.game),
+    campaignTitle: s.campaignTitle ?? null,
+    campaignImage: relId(s.campaignImage),
+    campaignLink: s.campaignLink ?? null,
+    visible: s.visible !== false,
+  }))
+
 const loadHome = async () => {
   const p = await payload()
   const items = await allCopies()
   const unique = onePerGame(items)
 
-  const featuredGames = await p.find({ collection: 'games', where: { featured: { equals: true } }, limit: 4, depth: 1 })
-  const featured: Featured[] = featuredGames.docs
-    .map((g) => {
-      const best = items.filter((i) => i.gameId === g.id).sort((a, b) => a.price - b.price)[0]
-      return best ? { ...best, large: img(g.cover, 'large') } : null
-    })
-    .filter((f): f is Featured => Boolean(f))
+  const hero = await heroFor(p, items)
 
   const groupCounts = Object.fromEntries(
     PLATFORM_GROUPS.map((g) => [g, unique.filter((i) => i.group === g).length]),
@@ -199,7 +239,7 @@ const loadHome = async () => {
     : null
 
   return {
-    featured,
+    hero,
     vitrine: unique,
     total: unique.length,
     groupCounts,

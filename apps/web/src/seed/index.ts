@@ -14,6 +14,7 @@ import path from 'path'
 import { getPayload } from 'payload'
 import { fileURLToPath } from 'url'
 
+import { HERO_DEFAULTS } from '../lib/painel/hero'
 import config from '../payload.config'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -196,5 +197,24 @@ await payload.create({
   overrideAccess: true,
 })
 log(`drop de sexta criado com ${dropItems.length} cópias reservadas`)
+
+// Home banner: today's texts, three game slides and one campaign without an
+// image (it shows the default art).
+const gameId = async (title: string) =>
+  (await payload.find({ collection: 'games', where: { title: { equals: title } }, limit: 1, depth: 0 })).docs[0].id
+await payload.updateGlobal({
+  slug: 'home-hero',
+  data: {
+    ...HERO_DEFAULTS,
+    slides: [
+      { kind: 'game', game: await gameId('Elden Ring'), visible: true },
+      { kind: 'campaign', campaignTitle: 'Black Friday Geek', campaignLink: '/loja', visible: true },
+      { kind: 'game', game: await gameId('Shadow of the Colossus'), visible: true },
+      { kind: 'game', game: await gameId("Marvel's Spider-Man 2"), visible: true },
+    ],
+  },
+  overrideAccess: true,
+})
+log('banner da home com 3 jogos e 1 campanha')
 
 process.exit(0)

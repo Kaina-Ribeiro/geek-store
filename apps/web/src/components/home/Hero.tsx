@@ -5,7 +5,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 
-import type { Featured, Img } from '../../lib/data'
+import type { Img } from '../../lib/data'
+import { titleLines, type HeroSlideView } from '../../lib/painel/hero'
 import { useCart } from '../../store/cart'
 import { toLine } from '../ShopCard'
 
@@ -25,15 +26,49 @@ const PIXELS = Array.from({ length: 28 }, (_, i) => {
   }
 })
 
-export function Hero({ featured, strip, total }: { featured: Featured[]; strip: Img[]; total: number }) {
+const CAMPAIGN_GLOW = '#FF7A1A'
+
+export type HeroProps = {
+  title: string
+  subtitle: string
+  ctaLabel: string
+  slides: HeroSlideView[]
+  strip: Img[]
+  total: number
+  // Rendered inside the owner's panel as a live preview: no priority images,
+  // no cart, links inert (the panel also wraps it in `inert`).
+  preview?: boolean
+}
+
+export function Hero({ title, subtitle, ctaLabel, slides, strip, total, preview = false }: HeroProps) {
   const [i, setI] = useState(0)
   const add = useCart((s) => s.add)
-  const f = featured[i]
-  const go = (d: number) => setI((n) => (n + d + featured.length) % featured.length)
+  const n = slides.length
+  const idx = n ? Math.min(i, n - 1) : 0
+  const cur = slides[idx]
+  const go = (d: number) => setI((k) => (Math.min(k, n - 1) + d + n) % n)
+  const lines = titleLines(title)
+  const counter = (
+    <span className="mono">
+      <b>{String(idx + 1).padStart(2, '0')}</b> / {String(n).padStart(2, '0')}
+    </span>
+  )
+  const nav =
+    n > 1 ? (
+      <>
+        <button className="hero-nav" aria-label="Destaque anterior" onClick={() => go(-1)}>
+          <ArrowIcon dir="left" size={16} />
+        </button>
+        <button className="hero-nav" aria-label="Próximo destaque" onClick={() => go(1)}>
+          <ArrowIcon size={16} />
+        </button>
+      </>
+    ) : null
+  const glow = cur?.kind === 'game' ? cur.item.glow : cur ? CAMPAIGN_GLOW : undefined
 
   return (
     <div className="hero">
-      <div className="hero-glow hero-glow-a" style={{ background: f?.glow }} />
+      <div className="hero-glow hero-glow-a" style={{ background: glow }} />
       <div className="hero-glow hero-glow-b" />
       {PIXELS.map((p, k) => (
         <i
@@ -44,27 +79,31 @@ export function Hero({ featured, strip, total }: { featured: Featured[]; strip: 
         />
       ))}
 
-      <div className="wrap hero-grid">
+      <div className={`wrap hero-grid${cur ? '' : ' solo'}`}>
         <div className="hero-copy">
           <span className="px hero-pill">
             <i className="blink" />
             Loja de games · Taubaté → Brasil
           </span>
           <h1 className="dsp hero-title">
-            Continue
-            <br />
-            de onde <span className="hero-outline">você</span>
-            <br />
-            <span className="hero-under">parou.</span>
+            {lines.map((l, k) =>
+              k === lines.length - 1 ? (
+                <span key={k} className="hero-under">
+                  {l}
+                </span>
+              ) : (
+                <span key={k}>
+                  {l}
+                  <br />
+                </span>
+              ),
+            )}
             <i className="blink hero-caret" aria-hidden="true" />
           </h1>
-          <p className="hero-sub">
-            Lacrados e seminovos <b>com laudo de cada disco</b>, do PS2 ao Switch 2. Separados à mão em Taubaté e
-            enviados para todo o Brasil.
-          </p>
+          {subtitle && <p className="hero-sub">{subtitle}</p>}
           <div className="hero-ctas">
             <Link className="btn btn-yellow" href="/loja">
-              Abrir a loja <ArrowIcon />
+              {ctaLabel} <ArrowIcon />
             </Link>
             <Link className="btn btn-ghost" href="/#troca">
               Trocar meus jogos
@@ -72,14 +111,21 @@ export function Hero({ featured, strip, total }: { featured: Featured[]; strip: 
           </div>
         </div>
 
-        {f && (
+        {cur?.kind === 'game' && (
           <>
             <div className="hero-stage" aria-hidden="true">
-              <div className="case3d" key={f.id}>
+              <div className="case3d" key={cur.item.id}>
                 <div className="c-disc" />
-                <div className="c-spine" style={{ background: `linear-gradient(90deg, ${f.glow}, #120D06)` }} />
+                <div className="c-spine" style={{ background: `linear-gradient(90deg, ${cur.item.glow}, #120D06)` }} />
                 <div className="c-front">
-                  <Image src={f.large.url} alt="" width={f.large.width} height={f.large.height} priority sizes="360px" />
+                  <Image
+                    src={cur.item.large.url}
+                    alt=""
+                    width={cur.item.large.width}
+                    height={cur.item.large.height}
+                    priority={!preview}
+                    sizes="360px"
+                  />
                 </div>
               </div>
               <div className="case-shadow" />
@@ -88,51 +134,74 @@ export function Hero({ featured, strip, total }: { featured: Featured[]; strip: 
             <aside className="hero-card glass-dark" aria-label="Destaque da semana">
               <div className="px hero-card-top">
                 <span>Destaque da semana</span>
-                <span className="mono">
-                  <b>{String(i + 1).padStart(2, '0')}</b> / {String(featured.length).padStart(2, '0')}
-                </span>
+                {counter}
               </div>
               <div className="hero-card-head">
                 {/* Small cover for screens where the 3D case is hidden. */}
-                <Link href={f.href} className="hero-thumb" key={f.id} tabIndex={-1} aria-hidden="true">
-                  <Image src={f.large.url} alt="" width={f.large.width} height={f.large.height} sizes="64px" />
+                <Link href={cur.item.href} className="hero-thumb" key={cur.item.id} tabIndex={-1} aria-hidden="true">
+                  <Image src={cur.item.large.url} alt="" width={cur.item.large.width} height={cur.item.large.height} sizes="64px" />
                 </Link>
                 <div className="hero-card-text">
-                  <Link href={f.href} className="dsp hero-card-name">
-                    {f.title}
+                  <Link href={cur.item.href} className="dsp hero-card-name">
+                    {cur.item.title}
                   </Link>
                   <div className="hero-tags">
                     <span className="tag">
-                      <i style={{ background: f.platformColor }} />
-                      {f.platform}
+                      <i style={{ background: cur.item.platformColor }} />
+                      {cur.item.platform}
                     </span>
                     <span className="tag">
-                      <i style={{ background: f.conditionColor }} />
-                      {f.condition}
+                      <i style={{ background: cur.item.conditionColor }} />
+                      {cur.item.condition}
                     </span>
-                    {f.ageRating && <span className="tag">{f.ageRating}</span>}
+                    {cur.item.ageRating && <span className="tag">{cur.item.ageRating}</span>}
                   </div>
                 </div>
               </div>
               <div>
-                <b className="mono hero-price">{f.pix}</b>
+                <b className="mono hero-price">{cur.item.pix}</b>
                 <small className="hero-inst">
-                  <em>no Pix</em> · ou {f.installment}
+                  <em>no Pix</em> · ou {cur.item.installment}
                 </small>
               </div>
               <div className="hero-actions">
-                <button className="hero-add" onClick={() => add(toLine(f))}>
+                <button className="hero-add" onClick={preview ? undefined : () => add(toLine(cur.item))}>
                   + Adicionar
                 </button>
-                <button className="hero-nav" aria-label="Destaque anterior" onClick={() => go(-1)}>
-                  <ArrowIcon dir="left" size={16} />
-                </button>
-                <button className="hero-nav" aria-label="Próximo destaque" onClick={() => go(1)}>
-                  <ArrowIcon size={16} />
-                </button>
+                {nav}
               </div>
             </aside>
           </>
+        )}
+
+        {cur?.kind === 'campaign' && (
+          <aside className={`hero-camp${cur.image ? ' has-img' : ''}`} aria-label="Campanha" key={`c${idx}`}>
+            {cur.image && (
+              <Image
+                className="hero-camp-img"
+                src={cur.image.url}
+                alt={cur.image.alt}
+                fill
+                priority={!preview}
+                sizes="(max-width: 768px) 100vw, 880px"
+              />
+            )}
+            <div className="px hero-camp-top">
+              <span className="hero-camp-badge">Campanha</span>
+              {n > 1 && counter}
+            </div>
+            <div className="hero-camp-body">
+              <Link href={cur.href} className="dsp hero-camp-title">
+                {cur.title}
+              </Link>
+              <div className="hero-actions">
+                <Link href={cur.href} className="hero-camp-btn">
+                  Ver ofertas <ArrowIcon size={16} />
+                </Link>
+                {nav}
+              </div>
+            </div>
+          </aside>
         )}
       </div>
 
