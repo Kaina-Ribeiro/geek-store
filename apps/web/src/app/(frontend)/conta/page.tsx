@@ -8,7 +8,7 @@ import { SiteFooter } from '../../../components/SiteFooter'
 import { SiteHeader } from '../../../components/SiteHeader'
 import { getAccount } from '../../../lib/account'
 import { getCustomer } from '../../../lib/auth'
-import { brl } from '../../../lib/catalog'
+import { brl, STORE_TZ } from '../../../lib/catalog'
 import { STATUS_COLOR, STATUS_LABEL, statusStep } from '../../../lib/order-view'
 import { TIERS } from '../../../lib/xp'
 
@@ -62,7 +62,7 @@ export default async function ContaPage({ searchParams }: { searchParams: SP }) 
 
   const acc = await getAccount(customer)
   const { tier, next: nextTier, toNext, progress } = acc.level
-  const since = new Date(acc.memberSince).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '')
+  const since = new Date(acc.memberSince).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric', timeZone: STORE_TZ }).replace('.', '')
   const bars = 20
 
   return (
@@ -134,7 +134,7 @@ export default async function ContaPage({ searchParams }: { searchParams: SP }) 
                             </div>
                           )}
                           <small>
-                            {new Date(o.createdAt).toLocaleDateString('pt-BR')} · {brl(o.total)}
+                            {new Date(o.createdAt).toLocaleDateString('pt-BR', { timeZone: STORE_TZ })} · {brl(o.total)}
                             {o.trackingCode ? ` · rastreio ${o.trackingCode}` : ''}
                           </small>
                         </Link>

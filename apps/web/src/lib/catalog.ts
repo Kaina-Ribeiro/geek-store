@@ -38,5 +38,9 @@ export const installments = (price: number) => {
   return { n, value: Math.round((price / n) * 100) / 100 }
 }
 
+// The store runs on São Paulo time. Dates are always formatted in it, so the
+// server (UTC on Cubeship/Vercel) and the browser render the same text.
+export const STORE_TZ = 'America/Sao_Paulo'
+
 export const brl = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/ /g, ' ')

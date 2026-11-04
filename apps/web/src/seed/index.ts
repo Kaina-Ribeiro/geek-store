@@ -58,12 +58,15 @@ const TESTED_ON: Record<string, string> = {
   'xbox-series': 'Xbox Series X', 'xbox-one': 'Xbox One S', 'xbox-360': 'Xbox 360 Slim',
 }
 
+// Next Friday 20:00 in São Paulo (UTC-3, no daylight saving since 2019),
+// whatever the server's own time zone is.
 const nextFriday20h = () => {
-  const d = new Date()
-  d.setHours(20, 0, 0, 0)
-  const add = (5 - d.getDay() + 7) % 7 || (new Date() < d ? 0 : 7)
-  d.setDate(d.getDate() + add)
-  return d.toISOString()
+  const BRT = -3 * 3600_000
+  const now = Date.now()
+  const local = new Date(now + BRT) // São Paulo wall clock read via UTC getters
+  const d = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), 20) - BRT)
+  const add = (5 - local.getUTCDay() + 7) % 7 || (now < d.getTime() ? 0 : 7)
+  return new Date(d.getTime() + add * 86_400_000).toISOString()
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))

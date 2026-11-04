@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useEffect, useState, useTransition } from 'react'
 
 import { subscribeAction } from '../../app/(frontend)/actions'
+import { STORE_TZ } from '../../lib/catalog'
 import type { DropView } from '../../lib/data'
 
 const pad = (n: number) => String(Math.max(0, n)).padStart(2, '0')
@@ -89,7 +90,7 @@ export function DropSection({ drop, standalone = false }: { drop: DropView; stan
   const left = Math.max(0, drop.slots - drop.reserved)
   const [first, ...rest] = drop.title.split(' ')
   const opens = new Date(drop.opensAt)
-  const when = opens.toLocaleString('pt-BR', { weekday: 'long', hour: '2-digit', minute: '2-digit' })
+  const when = opens.toLocaleString('pt-BR', { weekday: 'long', hour: '2-digit', minute: '2-digit', timeZone: STORE_TZ })
 
   return (
     <section id="drop" className="drop">
