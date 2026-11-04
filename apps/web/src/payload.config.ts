@@ -14,6 +14,7 @@ import { Drops } from './collections/Drops'
 import { Games } from './collections/Games'
 import { Media } from './collections/Media'
 import { Orders } from './collections/Orders'
+import { RateLimits } from './collections/RateLimits'
 import { Subscribers } from './collections/Subscribers'
 import { Users } from './collections/Users'
 import { migrations } from './migrations'
@@ -80,7 +81,7 @@ export default buildConfig({
     importMap: { baseDir: path.resolve(dirname) },
     meta: { titleSuffix: ' · Checkpoint Geek' },
   },
-  collections: [Orders, Games, Copies, Drops, Subscribers, Media, Customers, Users],
+  collections: [Orders, Games, Copies, Drops, Subscribers, Media, Customers, Users, RateLimits],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },

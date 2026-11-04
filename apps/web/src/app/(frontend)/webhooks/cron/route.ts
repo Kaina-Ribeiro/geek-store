@@ -4,6 +4,7 @@ import { sendDropOpenEmail } from '../../../../lib/emails'
 import { env } from '../../../../lib/env'
 import { expireStaleOrders } from '../../../../lib/orders'
 import { getClient } from '../../../../lib/payload'
+import { pruneRateLimits } from '../../../../lib/rate-limit'
 import { signId } from '../../../../lib/sign'
 
 export const dynamic = 'force-dynamic'
@@ -16,6 +17,7 @@ export async function GET(req: NextRequest) {
   }
   const payload = await getClient()
   const expired = await expireStaleOrders()
+  await pruneRateLimits()
 
   // "O drop abriu": one e-mail per subscriber, once per drop, within 6 hours.
   const now = new Date()

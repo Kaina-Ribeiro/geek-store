@@ -76,6 +76,7 @@ export interface Config {
     media: Media;
     customers: Customer;
     users: User;
+    'rate-limits': RateLimit;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -95,6 +96,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    'rate-limits': RateLimitsSelect<false> | RateLimitsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -438,6 +440,18 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "rate-limits".
+ */
+export interface RateLimit {
+  id: number;
+  key: string;
+  hits: number;
+  resetAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -491,6 +505,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'rate-limits';
+        value: number | RateLimit;
       } | null);
   globalSlug?: string | null;
   user:
@@ -813,6 +831,17 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "rate-limits_select".
+ */
+export interface RateLimitsSelect<T extends boolean = true> {
+  key?: T;
+  hits?: T;
+  resetAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -157,5 +157,28 @@ console.log('C1 · cliente não troca o próprio e-mail pela API')
   log('PATCH do próprio e-mail é recusado')
 }
 
+console.log('A4 · limite de tentativas')
+{
+  const { hit, LIMITS } = await import('../lib/rate-limit')
+  const who = `teste-${Date.now()}`
+  const seq = []
+  for (let i = 0; i < LIMITS.login.max + 1; i++) seq.push(await hit('login', who))
+  assert.deepEqual(seq, [...Array(LIMITS.login.max).fill(true), false])
+  log(`login: ${LIMITS.login.max} tentativas passam, a seguinte é barrada`)
+
+  const burst = await Promise.all(Array.from({ length: 20 }, () => hit('track', `${who}-burst`)))
+  assert.equal(burst.filter(Boolean).length, LIMITS.track.max)
+  log(`20 tentativas simultâneas: só ${LIMITS.track.max} passam`)
+
+  assert.equal(await hit('login', `${who}-outro-ip`), true)
+  log('outro IP tem a própria cota')
+
+  const { db } = await import('../lib/stock')
+  const { sql } = await import('@payloadcms/db-postgres/drizzle')
+  await db(payload).drizzle.execute(sql`UPDATE rate_limits SET reset_at = now() - interval '1 second' WHERE key = ${`login:${who}`}`)
+  assert.equal(await hit('login', who), true)
+  log('a cota volta quando a janela acaba')
+}
+
 console.log('\nTudo certo.')
 process.exit(0)

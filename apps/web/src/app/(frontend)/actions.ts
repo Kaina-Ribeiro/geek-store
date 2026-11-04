@@ -14,15 +14,19 @@ import {
 } from '../../lib/orders'
 import { toOrderView } from '../../lib/order-view'
 import { getClient } from '../../lib/payload'
+import { limited } from '../../lib/rate-limit'
 import { lookupCep, quoteShipping } from '../../lib/shipping'
 import { checkSigned } from '../../lib/sign'
 
 // Server actions used by the storefront. Each one validates its own input:
-// they are public endpoints.
+// they are public endpoints. The ones that send e-mail, create records or
+// call external services are rate limited per visitor IP (lib/rate-limit.ts).
 
 export async function quoteAction(rawCep: string, qty: number, pixSubtotal: number) {
   const cep = onlyDigits(String(rawCep))
   if (cep.length !== 8) return { ok: false as const, error: 'CEP com 8 números.' }
+  const over = await limited('quote')
+  if (over) return over
   const q = Math.max(1, Math.min(30, Math.floor(Number(qty) || 1)))
   const sub = Math.max(0, Number(pixSubtotal) || 0)
   const [address, options] = await Promise.all([lookupCep(cep), quoteShipping(cep, q, sub)])
@@ -31,6 +35,8 @@ export async function quoteAction(rawCep: string, qty: number, pixSubtotal: numb
 }
 
 export async function placeOrderAction(input: CheckoutInput) {
+  const over = await limited('checkout')
+  if (over) return over
   const customer = await getCustomer()
   return placeOrder(input, customer)
 }
@@ -52,10 +58,14 @@ export async function simulateAction(id: number, token: string, outcome: 'approv
 }
 
 export async function loginLinkAction(email: string, next?: string) {
+  const over = await limited('login')
+  if (over) return over
   return requestLoginLink(String(email || ''), next)
 }
 
 export async function subscribeAction(email: string, kind: 'newsletter' | 'drop') {
+  const over = await limited('subscribe')
+  if (over) return over
   return subscribe(String(email || ''), kind === 'drop' ? { dropAlerts: true } : { newsletter: true }, kind)
 }
 
@@ -120,6 +130,8 @@ export async function trackAction(rawNumber: string, rawEmail: string) {
   const n = Number(String(rawNumber || '').replace(/\D/g, ''))
   const email = String(rawEmail || '').trim().toLowerCase()
   if (!n || !email) return { ok: false as const, error: 'Preencha o número e o e-mail.' }
+  const over = await limited('track')
+  if (over) return over
   const payload = await getClient()
   const order = await payload
     .findByID({ collection: 'orders', id: n - 1000, depth: 0, overrideAccess: true })
