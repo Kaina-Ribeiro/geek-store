@@ -71,15 +71,16 @@ const nextFriday20h = () => {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-// Owner credentials for local dev live in apps/web/.env (never in chat/git).
-function ownerCredentials() {
+// Dev credentials (owner and staff) live in apps/web/.env, never in chat/git.
+function credentials(prefix: 'SEED_ADMIN' | 'SEED_STAFF', defaultEmail: string) {
   const env = fs.existsSync(ENV_FILE) ? fs.readFileSync(ENV_FILE, 'utf8') : ''
-  let email = process.env.SEED_ADMIN_EMAIL
-  let password = process.env.SEED_ADMIN_PASSWORD
+  const fromFile = (k: string) => env.match(new RegExp(`^${k}=(.*)$`, 'm'))?.[1]?.trim()
+  let email = process.env[`${prefix}_EMAIL`] || fromFile(`${prefix}_EMAIL`)
+  let password = process.env[`${prefix}_PASSWORD`] || fromFile(`${prefix}_PASSWORD`)
   if (!email || !password) {
-    email = 'dono@checkpointgeek.local'
+    email = defaultEmail
     password = crypto.randomBytes(9).toString('base64url')
-    fs.writeFileSync(ENV_FILE, `${env.trimEnd()}\nSEED_ADMIN_EMAIL=${email}\nSEED_ADMIN_PASSWORD=${password}\n`)
+    fs.writeFileSync(ENV_FILE, `${env.trimEnd()}\n${prefix}_EMAIL=${email}\n${prefix}_PASSWORD=${password}\n`)
   }
   return { email, password }
 }
@@ -94,9 +95,21 @@ log('catálogo limpo')
 
 const owners = await payload.count({ collection: 'users' })
 if (owners.totalDocs === 0) {
-  const { email, password } = ownerCredentials()
+  const { email, password } = credentials('SEED_ADMIN', 'dono@checkpointgeek.local')
   await payload.create({ collection: 'users', data: { name: 'Dono', email, password, role: 'dono' }, overrideAccess: true })
   log(`conta do dono criada (${email}); a senha está em apps/web/.env`)
+}
+
+// A staff account too, to test the panel with both roles.
+const staff = credentials('SEED_STAFF', 'equipe@checkpointgeek.local')
+const staffFound = await payload.find({ collection: 'users', where: { email: { equals: staff.email } }, limit: 1, overrideAccess: true })
+if (!staffFound.docs.length) {
+  await payload.create({
+    collection: 'users',
+    data: { name: 'Equipe', email: staff.email, password: staff.password, role: 'equipe' },
+    overrideAccess: true,
+  })
+  log(`conta da equipe criada (${staff.email}); a senha está em apps/web/.env`)
 }
 
 const copyIds = new Map<string, number[]>()
