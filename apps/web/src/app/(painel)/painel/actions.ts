@@ -5,6 +5,10 @@ import { redirect } from 'next/navigation'
 import { generatePayloadCookie } from 'payload'
 
 import { env } from '../../../lib/env'
+import type { HeroDraft } from '../../../lib/painel/hero'
+import { publishHero, searchGamesForHero, type PickGame, type PublishResult } from '../../../lib/painel/hero-store'
+import { saveImage, type SaveImageResult } from '../../../lib/painel/media'
+import { getStaffUser } from '../../../lib/painel/session'
 import { safeReturn } from '../../../lib/painel/paths'
 import { getClient } from '../../../lib/payload'
 import { limited } from '../../../lib/rate-limit'
@@ -53,4 +57,22 @@ export async function logoutAction(): Promise<void> {
   const payload = await getClient()
   ;(await cookies()).delete(`${payload.config.cookiePrefix}-token`)
   redirect('/painel/entrar')
+}
+
+// ------------------------------------------------------------------ banner
+
+export async function publishHeroAction(draft: HeroDraft, basedOn: string, force = false): Promise<PublishResult> {
+  return publishHero(await getClient(), await getStaffUser(), draft, basedOn, force)
+}
+
+export async function uploadImageAction(form: FormData): Promise<SaveImageResult> {
+  const file = form.get('file')
+  if (!(file instanceof File)) return { ok: false, error: 'Escolha uma foto.' }
+  return saveImage(await getClient(), await getStaffUser(), file, String(form.get('alt') || ''))
+}
+
+export async function searchGamesAction(q: string): Promise<PickGame[]> {
+  const user = await getStaffUser()
+  if (!user) return []
+  return searchGamesForHero(await getClient(), user, q)
 }

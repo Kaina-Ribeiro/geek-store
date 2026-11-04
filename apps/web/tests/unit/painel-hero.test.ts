@@ -3,11 +3,13 @@ import { describe, expect, it } from 'vitest'
 import type { Featured } from '../../src/lib/data'
 import {
   featuredToSlides,
+  type HeroDraft,
   HERO_DEFAULTS,
   HERO_LIMITS,
   isInternalPath,
   resolveHeroSlides,
   titleLines,
+  validateHero,
 } from '../../src/lib/painel/hero'
 
 describe('featuredToSlides', () => {
@@ -73,4 +75,27 @@ describe('resolveHeroSlides', () => {
       ),
     ).toEqual([{ kind: 'campaign', title: 'Natal', image: im, href: '/drop' }])
   })
+})
+
+describe('validateHero', () => {
+  const ok: HeroDraft = { title: 'Oi', subtitle: '', ctaLabel: 'Abrir a loja', slides: [] }
+  it('aceita o mínimo', () => expect(validateHero(ok)).toEqual({}))
+  it('título vazio ou só espaços', () => expect(validateHero({ ...ok, title: '  \n ' }).title).toBe('Escreva um título'))
+  it('título longo', () => expect(validateHero({ ...ok, title: 'x'.repeat(61) }).title).toBe('Título com até 60 letras'))
+  it('frase longa', () => expect(validateHero({ ...ok, subtitle: 'x'.repeat(221) }).subtitle).toBeTruthy())
+  it('botão vazio', () => expect(validateHero({ ...ok, ctaLabel: ' ' }).ctaLabel).toBeTruthy())
+  it('campanha sem texto', () =>
+    expect(validateHero({ ...ok, slides: [{ kind: 'campaign', campaignTitle: '', visible: true }] })['slides.0.campaignTitle']).toBe(
+      'A campanha precisa de um texto',
+    ))
+  it('jogo sem jogo', () =>
+    expect(validateHero({ ...ok, slides: [{ kind: 'game', game: null, visible: true }] })['slides.0.game']).toBe('Escolha um jogo'))
+  it('link externo', () =>
+    expect(
+      validateHero({ ...ok, slides: [{ kind: 'campaign', campaignTitle: 'a', campaignLink: 'https://x', visible: true }] })[
+        'slides.0.campaignLink'
+      ],
+    ).toBeTruthy())
+  it('9 slides', () =>
+    expect(validateHero({ ...ok, slides: Array(9).fill({ kind: 'game', game: 1, visible: true }) }).slides).toBe('No máximo 8 slides'))
 })

@@ -15,6 +15,7 @@
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "seed": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/index.ts",
     "smoke": "cross-env NODE_OPTIONS=\"--no-deprecation --conditions=react-server\" payload run src/scripts/smoke-checkout.ts",
+    "smoke:painel": "cross-env NODE_OPTIONS=\"--no-deprecation --conditions=react-server\" payload run src/scripts/smoke-painel.ts",
     "races": "cross-env NODE_OPTIONS=\"--no-deprecation --conditions=react-server\" payload run src/scripts/order-races.ts",
     "test": "vitest run",
     "e2e": "playwright test"

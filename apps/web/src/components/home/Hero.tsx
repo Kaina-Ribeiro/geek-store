@@ -38,13 +38,15 @@ export type HeroProps = {
   // Rendered inside the owner's panel as a live preview: no priority images,
   // no cart, links inert (the panel also wraps it in `inert`).
   preview?: boolean
+  // Preview only: which slide to show (the one selected in the editor).
+  index?: number
 }
 
-export function Hero({ title, subtitle, ctaLabel, slides, strip, total, preview = false }: HeroProps) {
+export function Hero({ title, subtitle, ctaLabel, slides, strip, total, preview = false, index }: HeroProps) {
   const [i, setI] = useState(0)
   const add = useCart((s) => s.add)
   const n = slides.length
-  const idx = n ? Math.min(i, n - 1) : 0
+  const idx = n ? Math.min(index ?? i, n - 1) : 0
   const cur = slides[idx]
   const go = (d: number) => setI((k) => (Math.min(k, n - 1) + d + n) % n)
   const lines = titleLines(title)

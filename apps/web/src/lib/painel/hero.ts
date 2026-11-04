@@ -73,3 +73,30 @@ export function resolveHeroSlides(
   }
   return out
 }
+
+// Title as saved: each line trimmed, blank lines dropped (what the site shows).
+export const normalizeTitle = (title: string) => titleLines(title).join('\n')
+
+// Short messages next to each field, keyed by field path ("slides.2.game").
+export function validateHero(d: HeroDraft): Record<string, string> {
+  const e: Record<string, string> = {}
+  const L = HERO_LIMITS
+  const title = normalizeTitle(d.title)
+  if (!title) e.title = 'Escreva um título'
+  else if (title.length > L.title) e.title = `Título com até ${L.title} letras`
+  if (d.subtitle.trim().length > L.subtitle) e.subtitle = `Frase com até ${L.subtitle} letras`
+  if (!d.ctaLabel.trim()) e.ctaLabel = 'Escreva o texto do botão'
+  else if (d.ctaLabel.trim().length > L.ctaLabel) e.ctaLabel = `Botão com até ${L.ctaLabel} letras`
+  if (d.slides.length > L.slides) e.slides = `No máximo ${L.slides} slides`
+  d.slides.forEach((s, i) => {
+    if (s.kind === 'game') {
+      if (s.game == null) e[`slides.${i}.game`] = 'Escolha um jogo'
+      return
+    }
+    const t = (s.campaignTitle || '').trim()
+    if (!t) e[`slides.${i}.campaignTitle`] = 'A campanha precisa de um texto'
+    else if (t.length > L.campaignTitle) e[`slides.${i}.campaignTitle`] = `Texto com até ${L.campaignTitle} letras`
+    if (s.campaignLink && !isInternalPath(s.campaignLink)) e[`slides.${i}.campaignLink`] = 'Escolha um destino da lista'
+  })
+  return e
+}

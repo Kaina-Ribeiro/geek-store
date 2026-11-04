@@ -160,6 +160,25 @@ export function featuredByGame(games: Game[], items: CardItem[]): Map<number, Fe
 }
 
 export const heroImage = (m: number | Media | null | undefined) => img(m, 'large')
+export const thumbImage = (m: number | Media | null | undefined) => img(m, 'thumb')
+
+// The cover strip under the hero and the "N jogos em estoque" count.
+export async function heroStrip() {
+  const unique = onePerGame(await allCopies())
+  return { strip: unique.map((i) => i.cover), total: unique.length }
+}
+
+// Game slides as the site would show them right now (best in-stock copy), for
+// the given games. Used by the panel's live preview and game picker.
+export async function featuredFor(gameIds: number[]): Promise<Map<number, Featured>> {
+  if (!gameIds.length) return new Map()
+  const p = await payload()
+  const [items, games] = await Promise.all([
+    allCopies(),
+    p.find({ collection: 'games', where: { id: { in: gameIds } }, depth: 1, limit: gameIds.length }),
+  ])
+  return featuredByGame(games.docs, items)
+}
 
 export type HeroData = { title: string; subtitle: string; ctaLabel: string; slides: HeroSlideView[] }
 
