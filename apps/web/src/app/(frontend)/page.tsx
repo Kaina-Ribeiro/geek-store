@@ -20,7 +20,7 @@ export default async function HomePage() {
     <>
       <section className="hero-wrap theme-dark">
         <SiteHeader variant="overlay" />
-        <Hero featured={home.featured} strip={home.strip} total={home.total} />
+        <Hero {...home.hero} strip={home.strip} total={home.total} />
       </section>
       <Tapes />
       <main>

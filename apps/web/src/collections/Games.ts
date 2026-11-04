@@ -1,15 +1,35 @@
-import type { CollectionConfig } from 'payload'
+import fs from 'fs'
+import path from 'path'
+import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
 
 import { anyone, donoOnly, staffOnly } from '../access/roles'
 import { PLATFORMS } from '../lib/catalog'
+import { slugify } from '../lib/painel/game-form'
+import { dominantGlow } from '../lib/painel/glow'
 
-const slugify = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
+// The glow behind the cover is computed from the cover itself when empty, so
+// the owner never has to pick a colour. Never blocks saving the game.
+const autoGlow: CollectionBeforeChangeHook = async ({ data, req }) => {
+  if (data.glow || !data.cover) return data
+  try {
+    const id = typeof data.cover === 'object' ? data.cover.id : data.cover
+    const media = await req.payload.findByID({ collection: 'media', id, depth: 0, req, overrideAccess: true })
+    const file = media.sizes?.thumb?.filename || media.filename
+    const dir = req.payload.collections.media.config.upload.staticDir
+    const local = file && dir ? path.resolve(dir, file) : ''
+    let input: Buffer | string | null = local && fs.existsSync(local) ? local : null
+    if (!input) {
+      const url = media.sizes?.thumb?.url || media.url || ''
+      const base = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
+      const res = await fetch(url.startsWith('http') ? url : `${base}${url}`)
+      if (res.ok) input = Buffer.from(await res.arrayBuffer())
+    }
+    if (input) data.glow = await dominantGlow(input)
+  } catch (err) {
+    req.payload.logger.warn({ err }, '[games] não deu para calcular a cor da capa')
+  }
+  return data
+}
 
 // A game title on one platform. Each physical unit for sale is a Copy.
 export const Games: CollectionConfig = {
@@ -17,10 +37,11 @@ export const Games: CollectionConfig = {
   labels: { singular: 'Jogo', plural: 'Jogos' },
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'platform', 'year', 'featured'],
+    defaultColumns: ['title', 'platform', 'year'],
     group: 'Catálogo',
   },
   access: { read: anyone, create: staffOnly, update: staffOnly, delete: donoOnly },
+  hooks: { beforeChange: [autoGlow] },
   fields: [
     { name: 'title', label: 'Título', type: 'text', required: true },
     {
@@ -56,14 +77,7 @@ export const Games: CollectionConfig = {
       name: 'glow',
       label: 'Cor de destaque',
       type: 'text',
-      admin: { description: 'Hex usado no brilho atrás da capa, ex.: #8C6A2B' },
-    },
-    {
-      name: 'featured',
-      label: 'Destaque da semana (hero)',
-      type: 'checkbox',
-      defaultValue: false,
-      admin: { position: 'sidebar' },
+      admin: { description: 'Hex usado no brilho atrás da capa, ex.: #8C6A2B. Vazio = calculado pela capa.' },
     },
     {
       name: 'copies',

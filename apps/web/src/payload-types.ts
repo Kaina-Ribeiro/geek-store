@@ -106,8 +106,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'home-hero': HomeHero;
+  };
+  globalsSelect: {
+    'home-hero': HomeHeroSelect<false> | HomeHeroSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -281,10 +285,9 @@ export interface Game {
   genre?: string | null;
   description?: string | null;
   /**
-   * Hex usado no brilho atrás da capa, ex.: #8C6A2B
+   * Hex usado no brilho atrás da capa, ex.: #8C6A2B. Vazio = calculado pela capa.
    */
   glow?: string | null;
-  featured?: boolean | null;
   copies?: {
     docs?: (number | Copy)[];
     hasNextPage?: boolean;
@@ -643,7 +646,6 @@ export interface GamesSelect<T extends boolean = true> {
   genre?: T;
   description?: T;
   glow?: T;
-  featured?: T;
   copies?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -882,6 +884,55 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "home-hero".
+ */
+export interface HomeHero {
+  id: number;
+  /**
+   * Cada linha vira uma linha no site. A última ganha o sublinhado amarelo.
+   */
+  title: string;
+  subtitle?: string | null;
+  ctaLabel: string;
+  slides?:
+    | {
+        kind: 'game' | 'campaign';
+        game?: (number | null) | Game;
+        campaignTitle?: string | null;
+        campaignImage?: (number | null) | Media;
+        campaignLink?: string | null;
+        visible?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "home-hero_select".
+ */
+export interface HomeHeroSelect<T extends boolean = true> {
+  title?: T;
+  subtitle?: T;
+  ctaLabel?: T;
+  slides?:
+    | T
+    | {
+        kind?: T;
+        game?: T;
+        campaignTitle?: T;
+        campaignImage?: T;
+        campaignLink?: T;
+        visible?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

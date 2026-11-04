@@ -3,18 +3,13 @@ import './site.css'
 import './commerce.css'
 
 import type { Metadata, Viewport } from 'next'
-import { Archivo, Geist, Geist_Mono, Silkscreen } from 'next/font/google'
 import type { ReactNode } from 'react'
 
 import { Analytics } from '../../components/analytics'
 import { Inventory } from '../../components/Inventory'
 import { StoreHydrator } from '../../components/StoreHydrator'
 import { Toast } from '../../components/Toast'
-
-const archivo = Archivo({ subsets: ['latin'], axes: ['wdth'], variable: '--font-archivo', display: 'swap' })
-const geist = Geist({ subsets: ['latin'], variable: '--font-geist', display: 'swap' })
-const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono', display: 'swap' })
-const silkscreen = Silkscreen({ subsets: ['latin'], weight: '400', variable: '--font-silkscreen', display: 'swap' })
+import { fontVars } from '../fonts'
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
@@ -28,7 +23,7 @@ export const viewport: Viewport = { themeColor: '#09090A' }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${archivo.variable} ${geist.variable} ${geistMono.variable} ${silkscreen.variable}`}>
+    <html lang="pt-BR" className={fontVars}>
       <body className="theme-dark">
         {children}
         <Inventory />

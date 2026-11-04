@@ -262,6 +262,18 @@ Para entrar no ar (depende do cliente):
 
 ---
 
+## 10.1 Painel do dono
+
+O dono e a equipe usam **`/painel`** para trocar o banner da home, cadastrar e editar jogos e avançar pedidos, sem abrir o `/admin`.
+
+- **Como entrar:** `/painel` → e-mail e senha de quem está na coleção "Equipe" (o mesmo login do `/admin`). "Esqueci a senha" usa o fluxo do `/admin/forgot`.
+- **Telas:** Início (atalhos e números), Banner da home (prévia ao vivo com o `Hero` real), Jogos (lista, adicionar, editar, esconder), Pedidos (um botão por pedido: "Já enviei", "Pronto para retirar", "Cliente retirou").
+- **Variáveis:**
+  - `PAINEL_HELP_WHATSAPP` (opcional): número ou link `https://wa.me/55...` do botão "Chamar o Gabriel". Sem ela, o cartão de ajuda não aparece.
+  - `SEED_STAFF_EMAIL` e `SEED_STAFF_PASSWORD`: conta de teste da equipe, criada pelo `pnpm seed` e gravada em `apps/web/.env` (igual ao `SEED_ADMIN_*` do dono).
+- **O que continua só no `/admin`:** restaurar versões antigas do banner (o Global `home-hero` guarda as 20 últimas), apagar jogo, editar drops, clientes, newsletter, equipe e configurações.
+- **Testes:** `pnpm smoke:painel` (servidor), `pnpm e2e painel` (navegador, com o dev server ligado).
+
 ## 11. Perguntas para o cliente
 
 1. Tem CNPJ? Precisa emitir nota fiscal? (define Bling/NFe.io)

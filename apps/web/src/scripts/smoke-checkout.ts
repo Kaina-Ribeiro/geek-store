@@ -30,7 +30,8 @@ const base = (lines: CheckoutInput['lines'], method: 'pix' | 'card' = 'pix'): Ch
 
 const stockOf = async (id: number) => (await payload.findByID({ collection: 'copies', id, depth: 0 })).stock
 
-const all = await payload.find({ collection: 'copies', where: { stock: { greater_than: 0 } }, depth: 0, limit: 200 })
+// Only copies a shopper can buy (the panel e2e leaves hidden test copies).
+const all = await payload.find({ collection: 'copies', where: { and: [{ stock: { greater_than: 0 } }, { active: { equals: true } }] }, depth: 0, limit: 200 })
 const locked = await lockedCopyIds()
 const unique = all.docs.find((c) => c.stock === 1 && !locked.has(c.id))
 const multi = all.docs.find((c) => c.stock > 1 && !locked.has(c.id))
