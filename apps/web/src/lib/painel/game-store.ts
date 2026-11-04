@@ -158,7 +158,8 @@ export async function listGamesForPanel(payload: Payload, user: User, q?: string
     select: { game: true, price: true, stock: true, active: true },
     ...as,
   })
-  return games.docs.map((g) => {
+  const RANK = { ok: 0, esgotado: 1, escondido: 2 } as const
+  const rows: PanelGame[] = games.docs.map((g) => {
     const mine = copies.docs.filter((c) => relId(c.game as number) === g.id)
     const live = mine.filter((c) => c.active && c.stock > 0)
     return {
@@ -170,6 +171,8 @@ export async function listGamesForPanel(payload: Payload, user: User, q?: string
       state: live.length ? 'ok' : mine.some((c) => c.active) ? 'esgotado' : 'escondido',
     }
   })
+  // For sale first, then sold out, then hidden (stable: newest first in each).
+  return rows.sort((a, b) => RANK[a.state] - RANK[b.state])
 }
 
 export type GameLoad = { draft: GameDraft; images: Record<number, Img> }
