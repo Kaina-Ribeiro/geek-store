@@ -153,6 +153,31 @@ try {
   const list = await listGamesForPanel(payload, equipe, title)
   assert(list.length === 1 && list[0].state === 'ok' && list[0].minPrice === 89.9, JSON.stringify(list))
   log('lista do painel acha o jogo pelo nome')
+
+  // A sale while the edit page is open must not be undone by saving it.
+  const open = await loadGameDraft(payload, equipe, g1.id)
+  const sealed = (await payload.find({ collection: 'copies', where: { and: [{ game: { equals: g1.id } }, { condition: { equals: 'lacrado' } }] }, depth: 0, overrideAccess: true })).docs[0]
+  await payload.update({ collection: 'copies', id: sealed.id, data: { stock: sealed.stock - 1 }, overrideAccess: true })
+  const g3 = await saveGame(payload, equipe, { ...open!.draft, description: 'só mudei a descrição' })
+  assert(g3.ok, JSON.stringify(g3))
+  assert.equal((await payload.findByID({ collection: 'copies', id: sealed.id, depth: 0, overrideAccess: true })).stock, sealed.stock - 1, 'venda no meio da edição não volta o estoque')
+  const opened = open!.draft.copies.find((c) => c.id === sealed.id)!
+  const g4 = await saveGame(payload, equipe, { ...open!.draft, copies: open!.draft.copies.map((c) => (c.id === sealed.id ? { ...opened, stock: opened.stock + 3 } : c)) })
+  assert(g4.ok)
+  assert.equal((await payload.findByID({ collection: 'copies', id: sealed.id, depth: 0, overrideAccess: true })).stock, sealed.stock - 1 + 3, '+3 no formulário soma ao estoque atual')
+  log('venda durante a edição não é desfeita; +3 no formulário soma ao estoque real')
+
+  // A game deleted in /admin leaves a slide with no game: nothing gets stuck.
+  const temp = await saveGame(payload, equipe, { ...draft, title: `Smoke Apagado ${stamp}`, showInHero: true })
+  assert(temp.ok)
+  await payload.delete({ collection: 'copies', where: { game: { equals: temp.id } }, overrideAccess: true })
+  await payload.delete({ collection: 'games', id: temp.id, overrideAccess: true })
+  const g5 = await saveGame(payload, equipe, { ...(await loadGameDraft(payload, equipe, g1.id))!.draft, showInHero: true })
+  assert(g5.ok, `Mostrar no banner com slide órfão: ${JSON.stringify(g5)}`)
+  const fresh = await loadHero(payload, equipe)
+  const pub = await publishHero(payload, equipe, fresh.draft, fresh.updatedAt)
+  assert(pub.ok, `publicar com slide órfão: ${JSON.stringify(pub)}`)
+  log('jogo apagado no /admin não trava o banner nem o "Mostrar no banner"')
 } finally {
   const extra = await payload.find({ collection: 'games', where: { title: { in: cleanupTitles } }, depth: 0, overrideAccess: true })
   for (const id of new Set([...gameIds, ...extra.docs.map((g) => g.id)])) {

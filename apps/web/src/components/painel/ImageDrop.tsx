@@ -3,8 +3,8 @@
 import Image from 'next/image'
 import { useRef, useState } from 'react'
 
-import { uploadImageAction } from '../../app/(painel)/painel/actions'
 import type { Img } from '../../lib/data'
+import type { SaveImageResult } from '../../lib/painel/media'
 import { UploadIcon } from './icons'
 
 const MAX = 8 * 1024 * 1024
@@ -43,7 +43,8 @@ export function ImageDrop({
       const form = new FormData()
       form.set('file', file)
       form.set('alt', alt)
-      const r = await uploadImageAction(form)
+      const res = await fetch('/painel/foto', { method: 'POST', body: form })
+      const r = (await res.json()) as SaveImageResult
       if (r.ok) onSaved(r.id, r.image)
       else setError(r.error)
     } catch {

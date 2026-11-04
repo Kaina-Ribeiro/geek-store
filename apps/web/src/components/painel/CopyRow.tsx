@@ -32,7 +32,8 @@ export function CopyRow({
   copy: CopyDraft
   images: Record<number, Img>
   error?: string
-  onChange: (c: CopyDraft) => void
+  // Updates start from the latest copy (a photo upload may finish later).
+  onChange: (fn: (c: CopyDraft) => CopyDraft) => void
   onRemove: () => void
   onImage: (id: number, image: Img) => void
   gameTitle: string
@@ -40,7 +41,8 @@ export function CopyRow({
   const label = `Cópia ${n}`
   const used = copy.condition !== 'lacrado'
   const laudo = copy.laudo ?? { ...LAUDO_DEFAULTS, photos: [] }
-  const setLaudo = (p: Partial<Laudo>) => onChange({ ...copy, laudo: { ...laudo, ...p } })
+  const laudoOf = (c: CopyDraft) => c.laudo ?? { ...LAUDO_DEFAULTS, photos: [] }
+  const setLaudo = (fn: (l: Laudo) => Partial<Laudo>) => onChange((c) => ({ ...c, laudo: { ...laudoOf(c), ...fn(laudoOf(c)) } }))
   const off = !copy.active
   const locked = Boolean(copy.sold)
 
@@ -55,12 +57,12 @@ export function CopyRow({
             <TrashIcon />
           </button>
         ) : off ? (
-          <button type="button" className="pn-chip sm" onClick={() => onChange({ ...copy, active: true })}>
+          <button type="button" className="pn-chip sm" onClick={() => onChange((c) => ({ ...c, active: true }))}>
             <UndoIcon />
             Voltar para a loja
           </button>
         ) : (
-          <button type="button" className="pn-chip sm" onClick={() => onChange({ ...copy, active: false })}>
+          <button type="button" className="pn-chip sm" onClick={() => onChange((c) => ({ ...c, active: false }))}>
             Tirar da loja
           </button>
         )}
@@ -75,12 +77,12 @@ export function CopyRow({
               className="pn-chip sm"
               aria-pressed={copy.condition === c.value}
               onClick={() =>
-                onChange({
-                  ...copy,
+                onChange((x) => ({
+                  ...x,
                   condition: c.value,
-                  laudo: c.value === 'lacrado' ? undefined : (copy.laudo ?? { ...LAUDO_DEFAULTS, photos: [] }),
-                  stock: c.value === 'lacrado' ? Math.max(1, copy.stock) : 1,
-                })
+                  laudo: c.value === 'lacrado' ? undefined : laudoOf(x),
+                  stock: c.value === 'lacrado' ? Math.max(1, x.stock) : 1,
+                }))
               }
             >
               <i className="pn-dot" style={{ background: c.color }} />
@@ -103,7 +105,10 @@ export function CopyRow({
                 placeholder="0,00"
                 value={copy.price}
                 aria-invalid={Boolean(error)}
-                onChange={(e) => onChange({ ...copy, price: e.target.value })}
+                onChange={(e) => {
+                  const v = e.target.value
+                  onChange((c) => ({ ...c, price: v }))
+                }}
               />
             </div>
             <FieldError msg={error} />
@@ -111,7 +116,7 @@ export function CopyRow({
           {!used && (
             <div className="pn-fld">
               <span className="pn-lbl">Quantidade</span>
-              <Stepper value={copy.stock} onChange={(v) => onChange({ ...copy, stock: v })} label={`Quantidade da ${label}`} />
+              <Stepper value={copy.stock} onChange={(v) => onChange((c) => ({ ...c, stock: v }))} label={`Quantidade da ${label}`} />
             </div>
           )}
         </div>
@@ -124,7 +129,7 @@ export function CopyRow({
               {CHECKS.map(([k, t]) => (
                 <label key={k} className="pn-check">
                   <span>{t}</span>
-                  <Switch on={laudo[k]} onChange={(v) => setLaudo({ [k]: v })} label={t} />
+                  <Switch on={laudo[k]} onChange={(v) => setLaudo(() => ({ [k]: v }))} label={t} />
                 </label>
               ))}
             </div>
@@ -139,7 +144,7 @@ export function CopyRow({
                         <button
                           type="button"
                           className="pn-ib danger"
-                          onClick={() => setLaudo({ photos: laudo.photos.filter((x) => x !== id) })}
+                          onClick={() => setLaudo((l) => ({ photos: l.photos.filter((x) => x !== id) }))}
                           aria-label="Tirar esta foto"
                         >
                           <TrashIcon size={16} />
@@ -157,7 +162,7 @@ export function CopyRow({
                 sub="Disco, caixa e manual de verdade"
                 onSaved={(id, image) => {
                   onImage(id, image)
-                  setLaudo({ photos: [...laudo.photos, id] })
+                  setLaudo((l) => ({ photos: [...l.photos, id] }))
                 }}
               />
             </div>
@@ -173,7 +178,10 @@ export function CopyRow({
                     className="pn-inp"
                     placeholder="2 riscos leves"
                     value={laudo.surface}
-                    onChange={(e) => setLaudo({ surface: e.target.value })}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      setLaudo(() => ({ surface: v }))
+                    }}
                   />
                 </div>
                 <div className="pn-fld pn-grow">
@@ -185,7 +193,10 @@ export function CopyRow({
                     className="pn-inp"
                     placeholder="PS2 Slim"
                     value={laudo.testedOn}
-                    onChange={(e) => setLaudo({ testedOn: e.target.value })}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      setLaudo(() => ({ testedOn: v }))
+                    }}
                   />
                 </div>
               </div>

@@ -1,15 +1,22 @@
 import 'server-only'
 
+import { randomBytes } from 'crypto'
 import type { Payload } from 'payload'
 import sharp from 'sharp'
 
 import type { User } from '../../payload-types'
 import { heroImage, type Img } from '../data'
+import { slugify } from './game-form'
 
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024
 const TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const FORMATS = ['jpeg', 'png', 'webp']
 const BAD_TYPE = 'Use uma foto JPG, PNG ou WebP'
+
+const uniqueName = (original: string, format: string) => {
+  const base = slugify((original || 'foto').replace(/\.[^.]+$/, '')).slice(0, 40) || 'foto'
+  return `${base}-${Date.now().toString(36)}${randomBytes(3).toString('hex')}.${format === 'jpeg' ? 'jpg' : format}`
+}
 
 export type SaveImageResult = { ok: true; id: number; url: string; image: Img } | { ok: false; error: string }
 
@@ -33,7 +40,9 @@ export async function saveImage(payload: Payload, user: User | null, file: File,
     const media = await payload.create({
       collection: 'media',
       data: { alt: alt.trim().slice(0, 120) || 'Foto da loja' },
-      file: { data, mimetype: `image/${format}`, name: file.name || `foto.${format}`, size: data.length },
+      // Unique name per upload: phones send "image.jpg" every time, and two
+      // uploads of the same name at once would hit Payload's unique filename.
+      file: { data, mimetype: `image/${format}`, name: uniqueName(file.name, format), size: data.length },
       user,
       overrideAccess: false,
     })

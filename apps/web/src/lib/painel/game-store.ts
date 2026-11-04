@@ -54,14 +54,22 @@ export async function saveGame(payload: Payload, user: User | null, draft: GameD
       const c = normalizeCopy(raw)
       const price = parsePrice(c.price)
       if (c.id != null) {
-        if (!existing.docs.some((d) => d.id === c.id)) throw new Error(`cópia ${c.id} não é deste jogo`)
+        const cur = existing.docs.find((d) => d.id === c.id)
+        if (!cur) throw new Error(`cópia ${c.id} não é deste jogo`)
         kept.add(c.id)
-        const sold = existing.docs.find((d) => d.id === c.id)!.stock === 0 && Boolean(raw.sold)
+        // Stock: only the change made in the form is applied on top of the
+        // current value (checkout and expiry move it meanwhile). A used copy
+        // is one unit: its stock is left to checkout.
+        const delta = c.condition === 'lacrado' && raw.loadedStock != null ? c.stock - raw.loadedStock : 0
+        const stock = c.condition === 'lacrado' ? Math.max(0, cur.stock + delta) : Math.min(cur.stock, 1)
+        const sold = cur.stock === 0 && Boolean(raw.sold)
         await payload.update({
           collection: 'copies',
           id: c.id,
           // A sold copy keeps its stock (0) and laudo; only visibility changes.
-          data: sold ? { active: c.active } : { condition: c.condition, price: price ?? undefined, stock: c.stock, active: c.active, laudo: laudoData(c) },
+          data: sold
+            ? { active: c.active }
+            : { condition: c.condition, price: price ?? undefined, ...(stock !== cur.stock && { stock }), active: c.active, laudo: laudoData(c) },
           ...opts,
         })
       } else if (c.active) {
@@ -78,13 +86,17 @@ export async function saveGame(payload: Payload, user: User | null, draft: GameD
 
     // Banner: a visible game slide at the end, or no slide for this game.
     const hero = await payload.findGlobal({ slug: 'home-hero', depth: 0, ...opts })
-    const slides = hero.slides || []
+    // Game slides whose game was deleted in /admin (game = null) are dropped
+    // here, or the whole banner would fail validation when written back.
+    const slides = (hero.slides || []).filter((s) => s.kind !== 'game' || relId(s.game) != null)
     const has = slides.some((s) => relId(s.game) === game.id)
     if (draft.showInHero && !has) {
       if (slides.length >= 8) throw Object.assign(new Error('banner cheio'), { panel: 'O banner já tem 8 slides. Tire um na tela do Banner antes.' })
       await payload.updateGlobal({ slug: 'home-hero', data: { slides: [...slides, { kind: 'game', game: game.id, visible: true }] }, ...opts })
     } else if (!draft.showInHero && has) {
       await payload.updateGlobal({ slug: 'home-hero', data: { slides: slides.filter((s) => relId(s.game) !== game.id) }, ...opts })
+    } else if (slides.length !== (hero.slides || []).length) {
+      await payload.updateGlobal({ slug: 'home-hero', data: { slides }, ...opts })
     }
 
     if (tx) await payload.db.commitTransaction(tx)
@@ -199,6 +211,7 @@ export async function loadGameDraft(payload: Payload, user: User, id: number): P
       condition: c.condition as ConditionValue,
       price: priceText(c.price),
       stock: c.stock,
+      loadedStock: c.stock,
       active: c.active !== false,
       sold: c.stock === 0,
       ...(c.condition !== 'lacrado' && {

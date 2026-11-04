@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { saveGameAction } from '../../app/(painel)/painel/actions'
 import { brl, conditionOf, CONDITIONS, installments, pixPrice, PLATFORMS, platformOf } from '../../lib/catalog'
@@ -63,7 +63,19 @@ function previewCard(d: GameDraft, cover: Img): CardItem | null {
   }
 }
 
-export function GameForm({ initial, images: initialImages, saved = false }: { initial?: GameDraft; images?: Record<number, Img>; saved?: boolean }) {
+type Stored = { draft: GameDraft; images: Record<number, Img> }
+
+export function GameForm({
+  userId,
+  initial,
+  images: initialImages,
+  saved = false,
+}: {
+  userId: number
+  initial?: GameDraft
+  images?: Record<number, Img>
+  saved?: boolean
+}) {
   const router = useRouter()
   const start = initial ?? EMPTY
   const [d, setD] = useState<GameDraft>(start)
@@ -76,11 +88,39 @@ export function GameForm({ initial, images: initialImages, saved = false }: { in
   const [touched, setTouched] = useState(false)
 
   const edit = d.id != null
+  // What was typed stays in this browser until it is published: an expired
+  // login or a closed tab loses nothing.
+  const key = `painel:game:${start.id ?? 'novo'}:${userId}`
+  useEffect(() => {
+    try {
+      if (saved) return localStorage.removeItem(key)
+      const raw = localStorage.getItem(key)
+      if (!raw) return
+      const s = JSON.parse(raw) as Stored
+      /* eslint-disable react-hooks/set-state-in-effect -- one-time restore from storage */
+      setD(s.draft)
+      setImages((m) => ({ ...s.images, ...m }))
+      setTouched(true)
+      /* eslint-enable react-hooks/set-state-in-effect */
+    } catch {
+      // Storage blocked: start from the saved game.
+    }
+  }, [key, saved])
+  useEffect(() => {
+    if (!touched) return
+    try {
+      localStorage.setItem(key, JSON.stringify({ draft: d, images } satisfies Stored))
+    } catch {}
+  }, [key, touched, d, images])
+
   const set = (p: Partial<GameDraft>) => {
     setD((x) => ({ ...x, ...p }))
     setTouched(true)
   }
-  const setCopy = (i: number, c: CopyDraft) => set({ copies: d.copies.map((x, j) => (j === i ? c : x)) })
+  const setCopy = (i: number, fn: (c: CopyDraft) => CopyDraft) => {
+    setD((x) => ({ ...x, copies: x.copies.map((c, j) => (j === i ? fn(c) : c)) }))
+    setTouched(true)
+  }
   const cover = d.coverId != null ? (images[d.coverId] ?? null) : null
   const card = useMemo(() => previewCard(d, cover ?? FALLBACK), [d, cover])
   const live = d.copies.filter((c) => c.active && !c.sold)
@@ -99,9 +139,16 @@ export function GameForm({ initial, images: initialImages, saved = false }: { in
   const save = async (draft = d) => {
     setBusy(true)
     setDup(null)
+    let leaving = false
     try {
       const r = await saveGameAction(draft)
       if (r.ok) {
+        // Stay locked until the saved page replaces this one: a second click
+        // here would save the new copies again.
+        leaving = true
+        try {
+          localStorage.removeItem(key)
+        } catch {}
         setErrors({})
         router.push(`/painel/jogos/${r.id}?salvo=${Date.now().toString(36)}`)
         return
@@ -113,7 +160,7 @@ export function GameForm({ initial, images: initialImages, saved = false }: { in
     } catch {
       setToast('Não deu para salvar. O que você digitou continua aqui, tente de novo.')
     } finally {
-      setBusy(false)
+      if (!leaving) setBusy(false)
     }
   }
 
@@ -224,12 +271,18 @@ export function GameForm({ initial, images: initialImages, saved = false }: { in
                 images={images}
                 error={errors[`copies.${i}.price`]}
                 gameTitle={d.title}
-                onChange={(x) => setCopy(i, x)}
-                onRemove={() => set({ copies: d.copies.filter((_, j) => j !== i) })}
+                onChange={(fn) => setCopy(i, fn)}
+                onRemove={() => {
+                  setD((x) => ({ ...x, copies: x.copies.filter((_, j) => j !== i) }))
+                  setTouched(true)
+                }}
                 onImage={(id, image) => setImages((m) => ({ ...m, [id]: image }))}
               />
             ))}
-            <button type="button" className="pn-chip dashed" onClick={() => set({ copies: [...d.copies, { condition: 'lacrado', price: '', stock: 1, active: true }] })}>
+            <button type="button" className="pn-chip dashed" onClick={() => {
+                setD((x) => ({ ...x, copies: [...x.copies, { condition: 'lacrado', price: '', stock: 1, active: true }] }))
+                setTouched(true)
+              }}>
               <PlusIcon />
               Tenho outra cópia
             </button>

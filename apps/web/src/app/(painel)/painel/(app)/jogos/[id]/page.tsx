@@ -20,5 +20,5 @@ export default async function EditarJogoPage({
   const loaded = await loadGameDraft(await getClient(), user, Number(id))
   if (!loaded) notFound()
   // A fresh key after each save remounts the form with the saved copies.
-  return <GameForm key={salvo || 'edit'} initial={loaded.draft} images={loaded.images} saved={Boolean(salvo)} />
+  return <GameForm key={salvo || 'edit'} userId={user.id} initial={loaded.draft} images={loaded.images} saved={Boolean(salvo)} />
 }

@@ -32,7 +32,10 @@ const SESSION = 'Sua sessão acabou. Entre de novo para publicar (seu rascunho c
 // preview needs to draw it exactly like the site.
 export async function loadHero(payload: Payload, user: User): Promise<HeroLoad> {
   const g = await payload.findGlobal({ slug: 'home-hero', depth: 2, user, overrideAccess: false })
-  const draft: HeroDraft = { title: g.title, subtitle: g.subtitle ?? '', ctaLabel: g.ctaLabel, slides: toSlideInputs(g.slides) }
+  // A game slide whose game was deleted in /admin is left out: the site skips
+  // it anyway, and keeping it would block every publish.
+  const slides = toSlideInputs(g.slides).filter((s) => s.kind !== 'game' || s.game != null)
+  const draft: HeroDraft = { title: g.title, subtitle: g.subtitle ?? '', ctaLabel: g.ctaLabel, slides }
   const games: Record<number, SlideGameInfo> = {}
   const images: Record<number, Img> = {}
   for (const s of g.slides || []) {

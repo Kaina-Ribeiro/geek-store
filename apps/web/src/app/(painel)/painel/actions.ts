@@ -10,7 +10,6 @@ import { saveGame, type SaveGameResult } from '../../../lib/painel/game-store'
 import type { HeroDraft } from '../../../lib/painel/hero'
 import { moveOrder } from '../../../lib/painel/order-store'
 import { publishHero, searchGamesForHero, type PickGame, type PublishResult } from '../../../lib/painel/hero-store'
-import { saveImage, type SaveImageResult } from '../../../lib/painel/media'
 import { getStaffUser } from '../../../lib/painel/session'
 import { safeReturn } from '../../../lib/painel/paths'
 import { getClient } from '../../../lib/payload'
@@ -66,12 +65,6 @@ export async function logoutAction(): Promise<void> {
 
 export async function publishHeroAction(draft: HeroDraft, basedOn: string, force = false): Promise<PublishResult> {
   return publishHero(await getClient(), await getStaffUser(), draft, basedOn, force)
-}
-
-export async function uploadImageAction(form: FormData): Promise<SaveImageResult> {
-  const file = form.get('file')
-  if (!(file instanceof File)) return { ok: false, error: 'Escolha uma foto.' }
-  return saveImage(await getClient(), await getStaffUser(), file, String(form.get('alt') || ''))
 }
 
 export async function searchGamesAction(q: string): Promise<PickGame[]> {

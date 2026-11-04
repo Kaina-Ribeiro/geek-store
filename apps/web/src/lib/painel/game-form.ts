@@ -19,6 +19,9 @@ export type CopyDraft = {
   stock: number
   active: boolean
   sold?: boolean
+  // Stock when the form was loaded: saving applies only the change the person
+  // made (+/-), so a sale that happened meanwhile is never undone.
+  loadedStock?: number
   laudo?: Laudo
 }
 

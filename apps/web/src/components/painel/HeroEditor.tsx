@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { publishHeroAction } from '../../app/(painel)/painel/actions'
 import { PLATFORMS } from '../../lib/catalog'
@@ -17,7 +17,8 @@ import { LivePreview, type Device } from './LivePreview'
 import { PublishBar, type BarStatus } from './PublishBar'
 import { Confirm, Counter, FieldError, Toast } from './ui'
 
-type Stored = { draft: HeroDraft; basedOn: string; savedAt: number }
+type Lookups = { featured: Record<number, Featured>; images: Record<number, Img>; games: Record<number, SlideGameInfo> }
+type Stored = { draft: HeroDraft; basedOn: string; savedAt: number; lookups?: Lookups }
 
 const DESTINOS = [
   { value: '/loja', label: 'A loja toda' },
@@ -34,9 +35,16 @@ const STATUS_TEXT: Record<BarStatus, string> = {
 }
 
 // Private mode or blocked storage: the draft then lives only in this tab.
-function saveDraft(key: string, draft: HeroDraft, basedOn: string) {
+// The lookups (games, covers, images picked in this draft) go along, so a
+// restored draft shows names and pictures, not "Escolha um jogo".
+function saveDraft(key: string, draft: HeroDraft, basedOn: string, lookups: Lookups) {
   try {
-    localStorage.setItem(key, JSON.stringify({ draft, basedOn, savedAt: Date.now() } satisfies Stored))
+    localStorage.setItem(key, JSON.stringify({ draft, basedOn, savedAt: Date.now(), lookups } satisfies Stored))
+  } catch {}
+}
+function dropDraft(key: string) {
+  try {
+    localStorage.removeItem(key)
   } catch {}
 }
 
@@ -59,6 +67,7 @@ export function HeroEditor({ userId, initial }: { userId: number; initial: HeroL
   const [toast, setToast] = useState<{ msg: string; tone?: 'red' } | null>(null)
   const [ask, setAsk] = useState<null | 'stale-load' | 'stale-publish'>(null)
   const [delIdx, setDelIdx] = useState<number | null>(null)
+  const edited = useRef(false)
 
   // Restore a draft left in this browser (closing the tab loses nothing).
   useEffect(() => {
@@ -67,23 +76,41 @@ export function HeroEditor({ userId, initial }: { userId: number; initial: HeroL
       if (!raw) return
       const s = JSON.parse(raw) as Stored
       if (!s?.draft || same(s.draft, initial.draft)) return localStorage.removeItem(key)
-      setDraft(s.draft) // eslint-disable-line react-hooks/set-state-in-effect -- one-time restore from storage
+      /* eslint-disable react-hooks/set-state-in-effect -- one-time restore from storage */
+      edited.current = true
+      setDraft(s.draft)
+      if (s.lookups) {
+        setFeatured((m) => ({ ...s.lookups!.featured, ...m }))
+        setImages((m) => ({ ...s.lookups!.images, ...m }))
+        setGames((m) => ({ ...s.lookups!.games, ...m }))
+      }
+      // Keep the draft's own base: publishing it still gets the "banner
+      // changed" question, even if this one is closed with Esc.
+      setBasedOn(s.basedOn)
       if (s.basedOn !== initial.updatedAt) setAsk('stale-load')
-      else setBasedOn(s.basedOn)
+      /* eslint-enable react-hooks/set-state-in-effect */
     } catch {
       // Storage blocked or broken: start from what is published.
     }
   }, [key, initial])
 
-  const change = (next: HeroDraft) => {
-    setDraft(next)
+  // Updates always start from the latest draft (an upload that finishes
+  // later never brings back what was typed meanwhile).
+  const update = (fn: (d: HeroDraft) => HeroDraft) => {
+    edited.current = true
+    setDraft((d) => fn(d))
     setJustPublished(false)
-    saveDraft(key, next, basedOn)
   }
-  const setSlides = (fn: (s: HeroSlideInput[]) => HeroSlideInput[]) => change({ ...draft, slides: fn(draft.slides.map((x) => ({ ...x }))) })
+  const setSlides = (fn: (s: HeroSlideInput[]) => HeroSlideInput[]) => update((d) => ({ ...d, slides: fn(d.slides.map((x) => ({ ...x }))) }))
   const patchSlide = (i: number, p: Partial<HeroSlideInput>) => setSlides((s) => s.map((x, j) => (j === i ? { ...x, ...p } : x)))
 
   const dirty = !same(draft, published)
+
+  // Every change is kept in this browser until it is published or discarded.
+  useEffect(() => {
+    // Only writes: publishing and "Voltar como estava" remove the draft.
+    if (edited.current && dirty) saveDraft(key, draft, basedOn, { featured, images, games })
+  }, [key, draft, basedOn, dirty, featured, images, games])
 
   // New server data (after a refresh): adopt it when it came from someone
   // else and there is no draft in progress. Our own publish already matches.
@@ -368,7 +395,7 @@ export function HeroEditor({ userId, initial }: { userId: number; initial: HeroL
                 rows={3}
                 value={draft.title}
                 aria-invalid={Boolean(err('title'))}
-                onChange={(e) => change({ ...draft, title: e.target.value })}
+                onChange={(e) => { const v = e.target.value; update((d) => ({ ...d, title: v })) }}
               />
               <FieldError msg={err('title')} />
               <p className="pn-hint">Aperte Enter para quebrar a linha. A última linha ganha o sublinhado colorido.</p>
@@ -386,7 +413,7 @@ export function HeroEditor({ userId, initial }: { userId: number; initial: HeroL
                 rows={3}
                 value={draft.subtitle}
                 aria-invalid={Boolean(err('subtitle'))}
-                onChange={(e) => change({ ...draft, subtitle: e.target.value })}
+                onChange={(e) => { const v = e.target.value; update((d) => ({ ...d, subtitle: v })) }}
               />
               <FieldError msg={err('subtitle')} />
             </div>
@@ -402,7 +429,7 @@ export function HeroEditor({ userId, initial }: { userId: number; initial: HeroL
                 className="pn-inp"
                 value={draft.ctaLabel}
                 aria-invalid={Boolean(err('ctaLabel'))}
-                onChange={(e) => change({ ...draft, ctaLabel: e.target.value })}
+                onChange={(e) => { const v = e.target.value; update((d) => ({ ...d, ctaLabel: v })) }}
               />
               <FieldError msg={err('ctaLabel')} />
             </div>
