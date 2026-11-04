@@ -17,6 +17,7 @@ import { Orders } from './collections/Orders'
 import { RateLimits } from './collections/RateLimits'
 import { Subscribers } from './collections/Subscribers'
 import { Users } from './collections/Users'
+import { HomeHero } from './globals/HomeHero'
 import { migrations } from './migrations'
 
 const filename = fileURLToPath(import.meta.url)
@@ -82,6 +83,7 @@ export default buildConfig({
     meta: { titleSuffix: ' · Checkpoint Geek' },
   },
   collections: [Orders, Games, Copies, Drops, Subscribers, Media, Customers, Users, RateLimits],
+  globals: [HomeHero],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },

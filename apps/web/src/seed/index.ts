@@ -27,18 +27,17 @@ type G = {
   year: number
   age: string
   glow: string
-  featured?: boolean
   description: string
   copies: [Cond, number, number][] // condition, price, stock
 }
 
 // Listed newest-first: the first entries show up first in "Acabou de chegar".
 const GAMES: G[] = [
-  { cover: '01', title: 'Elden Ring', platform: 'ps5', year: 2022, age: '16 anos', glow: '#8C6A2B', featured: true, description: 'Mundo aberto da FromSoftware com George R. R. Martin. Mídia física lacrada, versão brasileira com legendas em português.', copies: [['lacrado', 229.9, 3], ['a', 189.9, 1]] },
-  { cover: '02', title: 'Zelda: Tears of the Kingdom', platform: 'switch', year: 2023, age: '10 anos', glow: '#1C8F80', featured: true, description: 'A continuação de Breath of the Wild. Roda no Switch e no Switch 2.', copies: [['lacrado', 329.9, 2]] },
+  { cover: '01', title: 'Elden Ring', platform: 'ps5', year: 2022, age: '16 anos', glow: '#8C6A2B', description: 'Mundo aberto da FromSoftware com George R. R. Martin. Mídia física lacrada, versão brasileira com legendas em português.', copies: [['lacrado', 229.9, 3], ['a', 189.9, 1]] },
+  { cover: '02', title: 'Zelda: Tears of the Kingdom', platform: 'switch', year: 2023, age: '10 anos', glow: '#1C8F80', description: 'A continuação de Breath of the Wild. Roda no Switch e no Switch 2.', copies: [['lacrado', 329.9, 2]] },
   { cover: '03', title: 'Yakuza 0', platform: 'ps4', year: 2017, age: '18 anos', glow: '#C2185B', description: 'O começo da saga de Kiryu e Majima na Tóquio de 1988. Roda no PS5.', copies: [['a', 119.9, 1]] },
-  { cover: '04', title: 'Shadow of the Colossus', platform: 'ps2', year: 2005, age: '12 anos', glow: '#7C8C8F', featured: true, description: 'Versão americana original de 2005, completa com caixa e manual. Testado do boot até o terceiro colosso no PS2 Slim.', copies: [['a', 189.9, 1], ['b', 156.9, 1], ['disco', 118.9, 1]] },
-  { cover: '05', title: "Marvel's Spider-Man 2", platform: 'ps5', year: 2023, age: '12 anos', glow: '#C1121F', featured: true, description: 'Peter e Miles em Nova York. Seminovo nota A com caixa e código já usado.', copies: [['a', 199.9, 2], ['lacrado', 279.9, 2]] },
+  { cover: '04', title: 'Shadow of the Colossus', platform: 'ps2', year: 2005, age: '12 anos', glow: '#7C8C8F', description: 'Versão americana original de 2005, completa com caixa e manual. Testado do boot até o terceiro colosso no PS2 Slim.', copies: [['a', 189.9, 1], ['b', 156.9, 1], ['disco', 118.9, 1]] },
+  { cover: '05', title: "Marvel's Spider-Man 2", platform: 'ps5', year: 2023, age: '12 anos', glow: '#C1121F', description: 'Peter e Miles em Nova York. Seminovo nota A com caixa e código já usado.', copies: [['a', 199.9, 2], ['lacrado', 279.9, 2]] },
   { cover: '06', title: 'The Last of Us Part II', platform: 'ps4', year: 2020, age: '18 anos', glow: '#4A7A3A', description: 'Ellie em Seattle. Roda no PS5 com atualização gratuita.', copies: [['a', 89.9, 1]] },
   { cover: '07', title: 'Mario Kart 8 Deluxe', platform: 'switch', year: 2017, age: 'Livre', glow: '#E8322B', description: 'O kart mais vendido do Switch, para jogar em até 4 na mesma tela.', copies: [['a', 239.9, 2]] },
   { cover: '08', title: 'God of War II', platform: 'ps2', year: 2007, age: '18 anos', glow: '#A3241A', description: 'Kratos contra o Olimpo. Dois discos, versão americana.', copies: [['b', 149.9, 1]] },
@@ -117,7 +116,6 @@ for (const g of [...GAMES].reverse()) {
       year: g.year,
       ageRating: g.age,
       glow: g.glow,
-      featured: Boolean(g.featured),
       description: g.description,
     },
     overrideAccess: true,
